@@ -1,0 +1,18 @@
+{
+	"*":
+	{
+		"FAREWELL":"FAREWELL"
+	},
+	"en":
+	{
+		"FAREWELL":"Goodbye {{name}}!"
+	},
+	"en-US":
+	{
+		"FAREWELL":"Bye {{name}}!"
+	},
+	"en-GB":
+	{
+		"FAREWELL":"Adieu {{name}}!"
+	}
+}

@@ -1,0 +1,22 @@
+{
+	"*":
+	{
+		"GREETING":"GREETING",
+		"HELLO_WORLD":"HELLO_WORLD"
+	},
+	"en":
+	{
+		"GREETING":"Hello {{name}}!",
+		"HELLO_WORLD":"Hello World!"
+	},
+	"en-US":
+	{
+		"GREETING":"Hi {{name}}!",
+		"HELLO_WORLD":"Hi World!"
+	},
+	"en-GB":
+	{
+		"GREETING":"Good day {{name}}!",
+		"HELLO_WORLD":"'Ello World!"
+	}
+}

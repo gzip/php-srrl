@@ -1,0 +1,15 @@
+<phpunit bootstrap="../src/includes.php">
+<testsuites>
+  <testsuite name="SRRL Test Suite">
+    <directory>./</directory>
+  </testsuite>
+</testsuites>
+<filter>
+  <whitelist addUncoveredFilesFromWhitelist="true">
+    <directory suffix=".php">../src</directory>
+    <exclude>
+      <directory suffix=".php">../src/lib</directory>
+    </exclude>
+  </whitelist>
+</filter>
+</phpunit>
