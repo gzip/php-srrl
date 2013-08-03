@@ -2,8 +2,6 @@
 /* Copyright (c) 2013 Yahoo! Inc. All rights reserved.
 Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms. */
 
-require_once 'PHPUnit/Framework.php';
-
 class SimpleSqlTest extends PHPUnit_Framework_TestCase
 {
     protected $object;
