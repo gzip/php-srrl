@@ -16,7 +16,6 @@ require_once 'SimplePage.php';
 require_once 'SimpleRequest.php';
 require_once 'SimpleRouter.php';
 require_once 'SimpleApi.php';
-require_once 'SimpleScraper.php';
 require_once 'SimpleSearch.php';
 require_once 'SimpleSql.php';
 require_once 'SimpleString.php';
