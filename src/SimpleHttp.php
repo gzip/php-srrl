@@ -86,7 +86,7 @@ class SimpleHttp extends SimpleClass
     {
         if(!headers_sent($file, $line)) {
             header($key . ': ' . $value, $overwrite);
-            self::headersSent[$key] = $value;
+            self::$headersSent[$key] = $value;
             return true;
         } else {
             SimpleUtil::log('Unable to send header ' . $key . '. Headers alread sent in ' . $file . ' on line ' . $line . '.');
