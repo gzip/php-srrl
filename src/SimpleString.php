@@ -55,7 +55,8 @@ class SimpleString
                 }
                 // TODO: encode key
                 if ($key || $value) {
-                    $result .= ($result ? $separator : '') . (is_numeric($key) ? '' : $key) . $assignment . $value;
+                    $result .= ($result ? $separator : '') . (is_numeric($key) ? '' : $key) .
+                        ($key && $value ? $assignment : '') . $value;
                 }
             }
         }

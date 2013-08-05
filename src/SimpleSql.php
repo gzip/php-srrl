@@ -204,7 +204,10 @@ class SimpleSql extends SimpleClass
         $fields = SimpleString::buildParams($fields, '', ', ', ' ', null);
         if($fields && in_array($action, $supported))
         {
-            $query = 'ALTER TABLE '.$table.' '.$action.' ('.$fields.')';
+            if ($action === 'DROP') {
+                $action .= ' COLUMN';
+            }
+            $query = 'ALTER TABLE '.$table.' '.$action.' '.$fields;
             $result = $this->exec($query);
         }
         else

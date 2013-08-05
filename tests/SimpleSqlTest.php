@@ -72,13 +72,13 @@ class SimpleSqlTest extends PHPUnit_Framework_TestCase
 
     public function testUpdate()
     {
-        $this->assertEquals('UPDATE TABLE `my_table` SET `F`="foo", `B`=NULL WHERE 1', $this->sql->update(
+        $this->assertEquals('UPDATE `my_table` SET `F`="foo", `B`=NULL WHERE 1', $this->sql->update(
             array('fields'=>array('F'=>'foo', 'B'=>null), 'where'=>1)
         ));
-        $this->assertEquals('UPDATE TABLE `my_table` SET `F`=:F, `B`=:B', $this->sql->update(
+        $this->assertEquals('UPDATE `my_table` SET `F`=:F, `B`=:B', $this->sql->update(
             array('fields'=>array('F'=>null, 'B'=>null), 'prepare'=>true)
         ));
-        $this->assertEquals('UPDATE TABLE `my_table` SET `F`=?, `B`=?', $this->sql->update(
+        $this->assertEquals('UPDATE `my_table` SET `F`=?, `B`=?', $this->sql->update(
             array('fields'=>array('F', 'B'), 'prepare'=>true)
         ));
     }
@@ -128,12 +128,12 @@ class SimpleSqlTest extends PHPUnit_Framework_TestCase
 
     public function testAlter()
     {
-        $this->assertEquals('ALTER TABLE `my_table` MODIFY (foo char(10), bar date)', $this->sql->alter(
-            array('action'=>'modify', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
+        $this->assertEquals('ALTER TABLE `my_table` MODIFY foo char(10)', $this->sql->alter(
+            array('action'=>'modify', 'fields'=>array('foo'=>'char(10)'))
         ));
         
-        $this->assertEquals('ALTER TABLE `my_table` ADD (foo char(10), bar date)', $this->sql->alter(
-            array('action'=>'add', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
+        $this->assertEquals('ALTER TABLE `my_table` ADD bar date', $this->sql->alter(
+            array('action'=>'add', 'fields'=>array('bar'=>'date'))
         ));
         
         $this->assertFalse($this->sql->alter(
@@ -182,6 +182,11 @@ class SimpleSqlProxy extends SimpleSql
 
 class PdoMock
 {
+    function quote($val)
+    {
+        return '"' . $val . '"';
+    }
+    
     function __call($method, $args)
     {
         if(in_array($method, array('exec', 'query', 'prepare', 'quote')))
