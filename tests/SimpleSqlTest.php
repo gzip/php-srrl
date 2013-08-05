@@ -132,12 +132,16 @@ class SimpleSqlTest extends PHPUnit_Framework_TestCase
             array('action'=>'modify', 'fields'=>array('foo'=>'char(10)'))
         ));
         
+        $this->assertFalse($this->sql->alter(
+            array('action'=>'modify', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
+        ));
+        
         $this->assertEquals('ALTER TABLE `my_table` ADD bar date', $this->sql->alter(
             array('action'=>'add', 'fields'=>array('bar'=>'date'))
         ));
         
-        $this->assertFalse($this->sql->alter(
-            array('action'=>'MODIFY')
+        $this->assertEquals('ALTER TABLE `my_table` ADD (foo char(10), bar date)', $this->sql->alter(
+            array('action'=>'add', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
         ));
         
         $this->assertFalse($this->sql->alter(
@@ -145,9 +149,12 @@ class SimpleSqlTest extends PHPUnit_Framework_TestCase
         ));
         
         $this->assertEquals('ALTER TABLE `my_table` DROP COLUMN foo', $this->sql->alter(
-            array('action'=>'drop', 'fields'=>array('foo'))
+            array('action'=>'drop', 'fields'=>array('COLUMN'=>'foo'))
         ));
         
+        $this->assertFalse($this->sql->alter(
+            array('action'=>'MODIFY')
+        ));
     }
 
     public function testGetDsn()

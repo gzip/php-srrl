@@ -201,13 +201,19 @@ class SimpleSql extends SimpleClass
         $result = false;
         $supported = array('ADD', 'MODIFY', 'CHANGE', 'DROP');
         
-        $fields = SimpleString::buildParams($fields, '', ', ', ' ', null);
+        $fieldSql = SimpleString::buildParams($fields, '', ', ', ' ', null);
+        
+        if (count($fields) > 1) {
+            if ($action === 'ADD') {
+                $fieldSql = '(' . $fieldSql . ')';
+            } else {
+                return false;
+            }
+        }
+        
         if($fields && in_array($action, $supported))
         {
-            if ($action === 'DROP') {
-                $action .= ' COLUMN';
-            }
-            $query = 'ALTER TABLE '.$table.' '.$action.' '.$fields;
+            $query = 'ALTER TABLE '.$table.' '.$action.' '.$fieldSql;
             $result = $this->exec($query);
         }
         else
