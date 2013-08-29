@@ -14,7 +14,7 @@ class SimpleUtil
      * @return (mixed) Argument value or default value if not set.
      * @static
     **/
-    static public function getValue($args, $key, $default='', $allowEmpty = true)
+    static public function getValue($args, $key, $default = '', $allowEmpty = true)
     {
         if(is_array($key))
         {
@@ -125,8 +125,7 @@ class SimpleUtil
                         {
                             $node->$part = new stdClass;
                         }
-                        // TODO: verify if working
-                        $node = $node->$part;
+                        $node = &$node->$part;
                     }
                     else
                     {
