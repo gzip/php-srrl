@@ -9,17 +9,6 @@ include_once 'lib/Mustache.php';
 class SimpleString
 {
     /**
-     * Parses a string into a simpleXml object.
-     * 
-     * @param (string) The XML string.
-     * @return (mixed) SimpleXML object or false on error
-    **/
-    static public function parseXml($str)
-    {
-        return simplexml_load_string($str);
-    }
-    
-    /**
      * Render a template from an object using Mustache.
      * 
      * @param (string) Template.
@@ -39,7 +28,7 @@ class SimpleString
      * @param (string) Separator to use between params.
      * @param (string) Character to use for assignment.
      * @param (string) Function to apply to the parameter values.
-     * @return (string) String with params appended.
+     * @return (string) String of params.
     **/
     static public function buildParams($params, $prefix = '', $separator = '&', $assignment = '=', $encode = 'rawurlencode')
     {
@@ -123,7 +112,7 @@ class SimpleString
     **/
     static public function reduceWhitespace($str)
     {
-        return preg_replace('/[\n\r\t ]/+', ' ', trim($str));
+        return preg_replace('/[\n\r\t ]+/', ' ', trim($str));
     }
     
     /**
