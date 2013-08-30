@@ -247,6 +247,27 @@ class SimpleHttp extends SimpleClass
     }
     
     /**
+     * Get protocol.
+     * 
+     * @return string,"http://" or "https://".
+     **/
+    static public function getProtocol()
+    {
+        return (self::isSsl() ? 'https' : 'http') . '://';
+    }
+    
+    /**
+     * Get hostname.
+     * 
+     * @return string.
+     * @TODO handle missing host header
+     **/
+    static public function getHost()
+    {
+        return SimpleUtil::getValue($_SERVER, 'HTTP_HOST');
+    }
+    
+    /**
      * Serve an success header.
      * 
      * @param int 2xx status code.
