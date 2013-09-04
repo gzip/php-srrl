@@ -4,35 +4,27 @@ require_once '../../src/includes.php';
 
 class ContactsApi extends SimpleApi
 {
-    protected $resource = 'contact';
-    protected $resources = 'contacts';
-    protected $routes = array
-    (
-        // TODO? $this->addResource('contact')
-        array('route'=>'/api/contacts', 'method'=>'resources', 'verbs'=>array('GET', 'POST', 'PUT', 'DELETE', 'OPTIONS')),
-        array('route'=>'/api/contact/([0-9]+)', 'method'=>'resource',
-              'type'=>'regex', 'matchKeys'=>array('id'), 'verbs'=>array('GET', 'PUT', 'DELETE', 'OPTIONS')),
-        array('route'=>'/api/contact', 'method'=>'resource', 'verbs'=>array('POST', 'OPTIONS')),
-        array('route'=>'/api/', 'method'=>'routes')
-    );
-    
-    protected $sqlOptions = array
-    (
-        'db'=>'test_db',
-        'table'=>'contacts',
-        'user'=>'test_user',
-        'password'=>'testtest'
-    );
-    
+    function setup()
+    {
+        $this->setSqlOptions(array
+        (
+            'db'=>'test_db',
+            'table'=>'contacts',
+            'user'=>'test_user',
+            'password'=>'testtest'
+        ));
+        
+        $this->addResource(array(
+            'name'=>'contact'
+        ));
+        
+        parent::setup();
+    }
     // TODO: implement accept vcard
 }
 
-$api = new ContactsApi;
-// remove examples dir so we have cleaner routes
-$uri = str_replace('/examples', '', $api->getPath());
-//SimpleUtil::log($uri);
-// normally we wouldn't pass the $uri arg
-$api->route($uri);
+$api = new ContactsApi(array('root'=>'/examples/api'));
+$api->route();
 
 /*
 Host: simple.local
