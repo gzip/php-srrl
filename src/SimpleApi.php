@@ -5,36 +5,53 @@ Copyrights licensed under the MIT License. See the accompanying LICENSE file for
 class SimpleApi extends SimpleRouter
 {
     protected $db;
-    protected $routes = null;
-    // TODO: should this really be configurable? it's an annoyance in YQL
-    protected $resource = 'resource';
-    protected $resources = 'resources';
+    protected $routes = array();
+    protected $root = '/api';
     protected $sqlOptions = array();
+    protected $primaryKey = 'id';
     private $route = null;
     
     public function setupParams()
     {
         parent::setupParams();
-        $this->addSettable(array('routes', 'resource', 'resources', 'sqlOptions'));
+        $this->addSettable(array('sqlOptions', 'root'));
+        $this->addPushable(array('routes'));
         $this->addGettable(array('db'));
     }
     
     function setup()
     {
-        // TODO: error checking? (can set after construct) sqlOptions; resource || routes
+        // TODO: error checking?
         $this->db = new SimpleSql($this->sqlOptions);
-        // TODO: setup routes based on $resource
     }
     
+    public function addResource($opts)
+    {
+        $name = SimpleUtil::getValue($opts, 'name');
+        $plural = SimpleUtil::getValue($opts, 'plural', SimpleString::append($name, 's'));
+        $idRegex = SimpleUtil::getValue($opts, 'idRegex', '([0-9]+)');
+        $root = SimpleString::append($this->getRoot(), '/');
+        
+        $this->addRoute(array(
+            array('route'=>$root . $plural, 'method'=>'resources', 'args'=>array('resource'=>$name),
+                'verbs'=>array('GET', 'POST', 'PUT', 'DELETE', 'OPTIONS')),
+            array('route'=>$root . $name . '/' . $idRegex, 'type'=>'regex', 'matchKeys'=>array('id'),
+                  'regex'=>$idRegex,
+                  'method'=>'resource', 'verbs'=>array('GET', 'PUT', 'DELETE', 'OPTIONS')),
+            array('route'=>$root . $name, 'method'=>'resource', 'verbs'=>array('POST', 'OPTIONS')),
+            array('route'=>$root, 'method'=>'routes')
+        ));
+    }
+    
+    // TODO change method name
     function routes($args)
     {
         $routes = $this->getRoutes();
-        $resp = array('endpoints'=>array());
+        $resp = array('resources'=>array());
         foreach($routes as $route)
         {
-            array_unshift($resp['endpoints'], array(
-                // TODO: SimpleHttp::getHost
-                'uri'=>'http://'.$_SERVER['HTTP_HOST'].'/examples'.$route['route'],
+            array_unshift($resp['resources'], array(
+                'uri'=>SimpleHttp::getProtocol() .SimpleHttp::getHost() . $route['route'],
                 'methods'=>SimpleUtil::getValue($route, 'verbs', array('GET'))
             ));
         }
@@ -55,23 +72,48 @@ class SimpleApi extends SimpleRouter
             //$this->db->setAttribute(PDO::ATTR_EMULATE_PREPARES,true);
             $limit = min(100, intval(SimpleUtil::getValue($_GET, 'count', 10)));
             $page = min(1, intval(SimpleUtil::getValue($_GET, 'page', 1)));
+            $fields = SimpleUtil::getValue($_GET, 'fields');
+            $fields = $fields ? explode(',', $fields) : null;
             $statement = $this->db->select(array('limit'=>$limit, 'prepare'=>true));
             // TODO: Allow search, $this->getQuery() return 'name LIKE :name', array('name'=>SimpleUtil::getValue($_GET,'name'))
-            $statement->execute(array(':limit'=>$limit));
             
-            $result = $statement->fetchAll(PDO::FETCH_ASSOC);
-            if($result)
+            // execute sql and fetch results
+            $statement->execute(array(':limit'=>$limit));
+            $results = $statement->fetchAll(PDO::FETCH_ASSOC);
+            
+            $res = SimpleUtil::getValue($args, 'resource');
+            $root = SimpleString::append($this->getRoot(), '/');
+            foreach($results as &$result)
+            {
+                // supplement with uri if resource is known
+                if($res) {
+                    $id = SimpleUtil::getValue($result, $this->primaryKey);
+                    if($id) {
+                        // TODO $this->getUriBase()?
+                        $result['uri'] = SimpleHttp::getProtocol() . SimpleHttp::getHost() .
+                            $root . $res . '/' . $id;
+                    }
+                }
+                
+                // include specific fields if requested
+                if(!empty($fields)) {
+                    // TODO SimpleUtil::filterByKey($ar, $fields)
+                    $result = array_intersect_key($result, array_fill_keys($fields, null));
+                }
+            }
+            
+            if($results)
             {
                 $resp = array(
-                    'count' => count($result),
-                    $this->resources => $result,
+                    'count' => count($results),
+                    'resources' => $results,
                     'meta' => array(
                         'links' => array(
                             array(
                                 'rel' => 'next',
                                 'href' =>
-                                    (SimpleHttp::isSsl() ? 'https' : 'http') . '://'.
-                                    SimpleUtil::getValue($_SERVER, 'HTTP_HOST').
+                                    SimpleHttp::getProtocol().
+                                    SimpleHttp::getHost().
                                     $this->getPath().
                                     SimpleString::buildParams(array(
                                         'page' => $page+1,
@@ -98,7 +140,7 @@ class SimpleApi extends SimpleRouter
                 {
                     // TODO: Test POST
                     $id = SimpleUtil::getValue($resource, 'id'); unset($resource['id']);
-                    $resp['results'][] = $this->resource(array_merge($args, array('id'=>$id, 'body'=>$resource)), false);
+                    $resp['results'][] = $this->resource(array_merge($args, array($this->primaryKey=>$id, 'body'=>$resource)), false);
                 }
             }
             else
@@ -112,10 +154,11 @@ class SimpleApi extends SimpleRouter
     
     function resource($args, $respond = true)
     {
+        $whereClause = $this->primaryKey.'='.$args['id'];
         switch($args['verb'])
         {
             case 'GET':
-                $resp = $this->handleResource('select', array('where'=>'id='.$args['id']), $args);
+                $resp = $this->handleResource('select', array('where'=>$whereClause), $args);
                 $this->setAccessControlHeaders();
             break;
             case 'POST':
@@ -126,11 +169,11 @@ class SimpleApi extends SimpleRouter
             case 'PUT':
                 $resp = $this->handleResource('update', array(
                     'fields' => SimpleUtil::getValue($args, 'body', $this->getBody()),
-                    'where'  => 'id='.$args['id']
+                    'where'  => $whereClause
                 ));
             break;
             case 'DELETE':
-                $resp = $this->handleResource('delete', array('where'=>'id='.$args['id']));
+                $resp = $this->handleResource('delete', array('where'=>$whereClause));
             break;
             case 'OPTIONS':
                 $methods = $args['verbs'];
@@ -163,7 +206,7 @@ class SimpleApi extends SimpleRouter
             case 'select':
                 if($result)
                 {
-                    $resp = array($resource => $result->fetch(PDO::FETCH_ASSOC));
+                    $resp = array('resource' => $result->fetch(PDO::FETCH_ASSOC));
                 }
                 if(empty($resp))
                 {
@@ -176,7 +219,7 @@ class SimpleApi extends SimpleRouter
                     $id = $this->db->getLastInsertId();
                     SimpleHttp::location(SimpleString::wrap($routeArgs['path'], '', '/', false) . $id);
                     SimpleHttp::success(201);
-                    $resp = $this->handleResource('select', array('where'=>'id='.$id), $routeArgs);
+                    $resp = $this->handleResource('select', array('where'=>$this->primaryKey.'='.$id), $routeArgs);
                 }
                 else
                 {
@@ -217,7 +260,7 @@ class SimpleApi extends SimpleRouter
         {
             SimpleHttp::setAccessControl(count($methods) > 1 ? 'Methods' : 'Method', $methods);
             SimpleHttp::setAccessControl('Headers', array('Content-Type'));
-            SimpleHttp::setAccessControl('Mex-Age', 86400);
+            SimpleHttp::setAccessControl('Max-Age', 86400);
         }
     }
     
