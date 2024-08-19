@@ -8,50 +8,55 @@ class SimpleRequest extends SimpleClass
      * @var string
      */
     protected $protocol = 'http';
-    
+
     /**
      * @var string
      */
     protected $host = null;
-    
+
     /**
      * @var int
      */
     protected $port = 80;
-    
+
     /**
      * @var Curl handle
      */
     protected $handle = null;
-    
+
     /**
      * @var Response
      */
     protected $response = null;
-    
+
     /**
      * @var bool
      */
     protected $parse = false;
-    
+
     /**
      * @var bool
      */
     protected $final = true;
-    
+
     /**
      * @var string
      */
     protected $handleMethod = 'query';
-    
+
+    /**
+     * @var array
+     */
+    protected $logger = array();
+
     /**
      * @var array
      */
     protected $debugDetails = array('url', 'content_type', 'http_code', 'total_time');
-    
+
     /**
      * Called by SimpleClass::__construct prior to setParams.
-     * 
+     *
      * @return void
      **/
     public function setupParams()
@@ -61,12 +66,12 @@ class SimpleRequest extends SimpleClass
         $this->addPushable(array('debugDetails'));
         $this->addGettable(array('handle', 'parse'));
     }
-    
+
     /**
      * Get the protocol host and port.
-     * 
+     *
      * E.g. 'http://foo.com:25'
-     * 
+     *
      * @return string Host URL built from $this->protocol.'://'.getenv($this->host).':'.$this->port
      **/
     public function getBase()
@@ -124,12 +129,12 @@ class SimpleRequest extends SimpleClass
         }
 
         $this->setOptions($options);
-        
+
         // store parse flag for access in multiQuery
         $this->parse = $this->getOption('parseResponse');
-        
+
         $headers = array();
-        
+
         // handle keep alive headers is presentt
         $ka = $this->getOption('keepAlive');
         if($ka && is_int($ka))
@@ -137,16 +142,16 @@ class SimpleRequest extends SimpleClass
             $headers[] = 'Connection: keep-alive';
             $headers[] = 'Keep-Alive: '.$ka;
         }
-        
+
         // tack on any matrix params
         $path .= $this->buildMatrixParams($this->getOption('matrixParams'));
-        
+
         // tack on any query params
         $path .= $this->buildQueryParams($this->getOption('queryParams'), $path);
-        
+
         // set curl options
         $curlOptions = array();
-        
+
         // handle put or post data
         if(isset($options['putData']))
         {
@@ -158,7 +163,7 @@ class SimpleRequest extends SimpleClass
             $curlOptions[CURLOPT_POST] = 1;
             $curlOptions[CURLOPT_POSTFIELDS] = $this->buildQueryParams($options['postData']);
         }
-        
+
         // increase timeouts for debug
         if(!$this->debug)
         {
@@ -170,24 +175,24 @@ class SimpleRequest extends SimpleClass
             $curlOptions[CURLOPT_TIMEOUT] = 10;
             $curlOptions[CURLOPT_CONNECTTIMEOUT] = 5;
         }
-        
+
         $curlOptions[CURLOPT_RETURNTRANSFER] = true;
-        
+
         // append any custom curl options, overriding any previous values
         $additionalOptions = $this->getOption('curlOptions');
         if(is_array($additionalOptions))
         {
             $curlOptions = $this->mergeOptions($curlOptions, $additionalOptions);
         }
-        
+
         // add headers
         $curlOptions[CURLOPT_HTTPHEADER] = $headers;
-        
+
         // create handle and set options
         $url = $this->getBase() . $path;
         $curlHandle = curl_init($url);
         curl_setopt_array($curlHandle, $curlOptions);
-        
+
         // Start log if debug is enabled
         if($this->debug)
         {
@@ -195,10 +200,10 @@ class SimpleRequest extends SimpleClass
                 $this->logger['headers'] = print_r($headers, 1);
             }
         }
-        
+
         // store handle
         $this->handle = $curlHandle;
-        
+
         // assign handle to result or execute it
         if($this->getOption('execute', true))
         {
@@ -208,13 +213,13 @@ class SimpleRequest extends SimpleClass
         {
             $result = $curlHandle;
         }
-        
+
         return $result;
     }
-    
+
     /**
-     * Wrapper around query() to return a handle. Equivalent to passing 'execute' in $options.
-     * 
+     * Wrapper around query() to return a handle. Equivalent to passing 'execute' => false in $options.
+     *
      * @param string API without host or base.
      * @param array Options.
      * @see query
@@ -228,10 +233,10 @@ class SimpleRequest extends SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Wrapper around setupHandle() to return a request object instead of a curl handle.
-     * 
+     *
      * @param string API without host or base.
      * @param array Options.
      * @see query
@@ -241,34 +246,35 @@ class SimpleRequest extends SimpleClass
         $this->setupHandle($path, $options);
         return $this;
     }
-    
+
     /**
      * Log results if present.
-     * 
+     *
      * @return void
     **/
     public function execute()
     {
         // init, set options, and execute
         $result = curl_exec($this->handle);
-        
+
         // optionally parse the response further
         if($this->getOption('parseResponse'))
         {
             $result = $this->parseResponse($result);
         }
-        
+
         $this->logResult();
-        
+
         return $result;
     }
-    
+
     /**
      * Fetch all web service data in parallel.
-     * 
-     * @return string Param value.
+     *
+     * @param array Array of SimpleRequest objects or raw resources.
+     * @return array Results
     **/
-    public function multiQuery(Array $queries, $callback = null)
+    public function multiQuery(Array $queries)
     {
         //$this->log($queries);
         $results = false;
@@ -280,32 +286,20 @@ class SimpleRequest extends SimpleClass
             foreach($queries as $key=>$query)
             {
                 $isRequest = is_a($query, 'SimpleRequest');
-                switch(true)
+                $isResource = is_resource($query); // prior to php 8
+                $isCurlHandle = is_a($query, 'CurlHandle'); // new in php 8
+
+                $handle = $isRequest ? $query->getHandle() : $query;
+
+                if($isResource || $isCurlHandle)
                 {
-                    case $isRequest:
-                        $handle = $query->getHandle();
-                    break;
-                    case is_resource($query):
-                        $handle = $query;
-                    break;
-                    default:
-                        $handle = false;
-                }
-                
-                if($handle)
-                {
-                    $id = SimpleUtil::getResourceId($handle);
                     // store key to return results in same order and request for later use
-                    $keys[$id] = array('key'=>$key, 'request'=>($isRequest ? $query : false));    
+                    $id = SimpleRequest::getResourceId($handle);
+                    $keys[$id] = array('key'=>$key, 'request'=>($isRequest ? $query : false));
                     curl_multi_add_handle($multi, $handle);
                 }
             }
-            //$this->log($keys);
-/*
-            do {
-                $ready = curl_multi_exec($multi, $active);
-            } while ($active > 0);
-*/
+
             // execute handles
             $results = array();
             do {
@@ -314,16 +308,18 @@ class SimpleRequest extends SimpleClass
                 if($info)
                 {
                     $handle = $info['handle'];
-                    $id = SimpleUtil::getResourceId($handle);
+                    $id = SimpleRequest::getResourceId($handle);
+
                     $key = $keys[$id]['key'];
                     $request = $keys[$id]['request'];
+
                     switch($info['result'])
                     {
                         case CURLE_OK:
                             $content = curl_multi_getcontent($handle);
-                             $results[$key] = SimpleUtil::isObject($request, 'SimpleRequest') && $request->getParse() ?
-                                 $this->parseResponse($content, $request->getHandle()) : $content;
-                         break;
+                            $results[$key] = SimpleUtil::isObject($request, 'SimpleRequest') && $request->getParse() ?
+                                $this->parseResponse($content, $request->getHandle()) : $content;
+                        break;
                         default:
                             $results[$key] = false;
                     }
@@ -331,13 +327,26 @@ class SimpleRequest extends SimpleClass
             } while ($info || $executing);
         }
         //$this->log($results);
-        
+
         return $results;
     }
-    
+
+    /**
+     * Get the resource id of a curl handle.
+     * (In PHP 8 the handle changed from a resource object to the opaque class CurlHandle, so we need to cover both cases.)
+     *
+     * @param obj Resource object or CurlHandle.
+     * @see https://php.watch/versions/8.0/resource-CurlHandle
+     * @return int Id
+    **/
+    static public function getResourceId($res)
+    {
+        return is_resource($res) ? SimpleUtil::getResourceId($res) : (int) $res;
+    }
+
     /**
      * Build matrix params from an array or string.
-     * 
+     *
      * @param array/string Parameters.
      * @return string Parameter string.
     **/
@@ -345,10 +354,10 @@ class SimpleRequest extends SimpleClass
     {
         return SimpleString::buildParams($params, ';', ';');
     }
-    
+
     /**
      * Build query params from an array or string.
-     * 
+     *
      * @param array/string Parameters.
      * @return string  Parameter string.
     **/
@@ -360,10 +369,10 @@ class SimpleRequest extends SimpleClass
         }
         return SimpleString::buildParams($params, $prefix);
     }
-    
+
     /**
      * Do further parsing on the response before returning.
-     * 
+     *
      * @param string Result of query.
      * @param object Curl handle.
      * @return mixed Result of parse.
@@ -388,13 +397,13 @@ class SimpleRequest extends SimpleClass
                 // log?
                 $result = $content;
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Integer index safe array_merge.
-     * 
+     *
      * @param array First array.
      * @param array Second array.
      * @return array New array or false on error.
@@ -404,17 +413,17 @@ class SimpleRequest extends SimpleClass
         if(!is_array($a) || !is_array($b)){
             return false;
         }
-        
+
         foreach($b as $key=>$value){
             $a[$key] = $value;
         }
-        
+
         return $a;
     }
-    
+
     /**
      * Log results if present.
-     * 
+     *
      * @return void
     **/
     public function logResult()
@@ -424,18 +433,18 @@ class SimpleRequest extends SimpleClass
         {
             // get curl info
             $info = curl_getinfo($this->handle);
-            
+
             // reduce info if specified
             if(!empty($this->debugDetails)){
                 $info = array_intersect_key($info, array_fill_keys($this->debugDetails, null));
             }
-            
+
             // add curl error if present
             $err = curl_errno($this->handle);
             if($err){
                 $info['curl_error'] = $err;
             }
-            
+
             // log it
             $this->log(SimpleString::buildParams($info, "\n  ", "\n  ", ': ', null));
         }
