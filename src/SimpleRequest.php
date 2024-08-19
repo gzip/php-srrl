@@ -56,7 +56,8 @@ class SimpleRequest extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('host', 'protocol', 'port'));
+        $this->addSettable(array('host', 'protocol', 'port', 'url'));
+        $this->addSetter('url', 'parseUrl');
         $this->addPushable(array('debugDetails'));
         $this->addGettable(array('handle', 'parse'));
     }
@@ -72,11 +73,28 @@ class SimpleRequest extends SimpleClass
     {
         return $this->protocol.'://'.$this->host.(80 == $this->port ? '' : ':'.$this->port);
     }
-    
+
+    /**
+     * Parse URL into its components (protocol, host, port path) and set relevant properties.
+     *
+     * @return array URL components
+     **/
+    public function parseUrl($url)
+    {
+        $components = parse_url($url);
+        foreach (array('scheme'=>'protocol', 'host'=>'host', 'port'=>'port') as $key=>$dest) {
+            if (isset($components[$key])) {
+                $this->set($dest, $components[$key]);
+            }
+        }
+
+        return $components;
+    }
+
     /**
      * Make a generic request.
-     * 
-     * @param string API without host or base.
+     *
+     * @param string API path without host or base, or full URL which will be parsed.
      * @param array Options for the request including keys:
      *     <ul>
      *     <li>queryParams (array) : Key value pairs appended to the URL as query paramaters.</li>
@@ -93,8 +111,18 @@ class SimpleRequest extends SimpleClass
     **/
     public function query($path, $options = array())
     {
-        $this->logger = array();
-        
+        // handle raw url
+        if (strpos($path, '://') !== false)
+        {
+            $components = $this->parseUrl($path);
+            $path = SimpleUtil::getValue($components, 'path');
+            $query = SimpleUtil::getValue($components, 'query');
+            if (!empty($query)) {
+                parse_str($query, $query);
+                $options['queryParams'] = array_merge(SimpleUtil::getValue($options, 'queryParams', array()), $query);
+            }
+        }
+
         $this->setOptions($options);
         
         // store parse flag for access in multiQuery
