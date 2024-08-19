@@ -345,6 +345,33 @@ class SimpleRequest extends SimpleClass
     }
 
     /**
+     * Parse the raw header string in an HTTP response.
+     *
+     * @param string Raw header string.
+     * @return array Indexed by header name.
+    **/
+    static public function parseHeaders($rawHeaders)
+    {
+        $headers = array();
+        $lines = explode("\n", $rawHeaders);
+
+        // get response header first if set
+        if (isset($lines[0]) && strpos($lines[0], "HTTP") === 0) {
+            $headers[0] = array_shift($lines);
+        }
+
+        foreach ($lines as $line)
+        {
+            if (strpos($line, ':')) {
+                list($key, $value) = explode(":", $line, 2);
+                $headers[$key] = trim($value);
+            }
+        }
+
+        return $headers;
+    }
+
+    /**
      * Build matrix params from an array or string.
      *
      * @param array/string Parameters.
