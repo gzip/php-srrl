@@ -35,7 +35,7 @@ class SimpleMarkup
     protected $isXml = false;
     protected $isXhtml = false;
     protected $settable = array('isXml', 'isXhtml');
-    
+
     protected $standardTags = array(
         'abbr', 'address', 'article', 'aside', 'audio', 'blockquote', 'body', 'bold',
         'canvas', 'cite', 'caption', 'code', 'col', 'colgroup', 'div', 'dd', 'dl', 'dt',
@@ -49,10 +49,10 @@ class SimpleMarkup
     );
 
     protected $selfClosingTags = array('br', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'param', 'source', 'wbr');
-    
+
     /**
      * Magic method used to handle standard tags, falls back to parent method for getter/setter.
-     * 
+     *
      * @param string Invoked method name.
      * @param array Arguments passed to the method.
     **/
@@ -75,13 +75,13 @@ class SimpleMarkup
             $result = false;
             //$result = parent::__call($method, $args);
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Safely build up markup.
-     * 
+     *
      * @param string The innerHTML of the node.
      * @param string Tag name to use when $url is empty.
      * @param string Class name to add to the tag.
@@ -94,10 +94,10 @@ class SimpleMarkup
         $tag = '';
         $noValue = $content === self::NO_VALUE;
         $implicit = in_array($textNode, $this->selfClosingTags);
-        
+
         if($noValue){ $content = ''; }
         if($class){ $class = ' class="'.$class.'"'; }
-        
+
         if($content || $implicit || $noValue){
             $tag = $url ? '<a href="'.$url.'"'.$class.$this->buildAttrs($attrs).'>'.$content.'</a>' :
                 '<'.$textNode.$class.$this->buildAttrs($attrs).$this->closeTag().
@@ -105,20 +105,20 @@ class SimpleMarkup
         }
         return $tag;
     }
-    
+
     /**
      * Close tag using HTML or X(HT)ML style.
-     * 
+     *
      * @return string Closing characters.
     **/
     protected function closeTag()
     {
         return ($this->isXml || $this->isXhtml ? '/' : '').'>';
     }
-    
+
     /**
      * Build tag attributes.
-     * 
+     *
      * @param $attrs,... (array|string) Variable number of attribute arguments.
      * @return string Attribute string.
     **/
@@ -131,10 +131,10 @@ class SimpleMarkup
         }
         return $attrs;
     }
-    
+
     /**
      * Build attribute value.
-     * 
+     *
      * @param string The raw attribute value.
      * @return string Escaped and quoted attribute value.
     **/
@@ -142,10 +142,10 @@ class SimpleMarkup
     {
         return '"'.addslashes($value).'"';
     }
-    
+
     /**
      * Build a link tag.
-     * 
+     *
      * @param string The content of the link.
      * @param string Tag url of the link.
      * @param string An optional class.
@@ -153,12 +153,12 @@ class SimpleMarkup
     **/
     public function a($content, $url, $class = '', $attrs = '')
     {
-        return $this->tag($content, '', $class, $url, $attrs = '');
+        return $this->tag($content, 'span', $class, $url, $attrs = '');
     }
-    
+
     /**
      * Build an image tag.
-     * 
+     *
      * @param array|string An array containing `url`, `alt`, `width`, and `height` keys; or a string containing the image URL.
      * @param string The image class name.
      * @param array|string Additional attributes to include in the tag.
@@ -171,7 +171,7 @@ class SimpleMarkup
         {
             $data = array('url'=>$data);
         }
-        
+
         $src = $this->value($data, 'url');
         if($src)
         {
@@ -181,13 +181,13 @@ class SimpleMarkup
             $dims = $width && $height ? ' width="'.$width.'" height="'.$height.'"' : '';
             $attrs = 'src="'.$src.'"'.$dims.$alt.$this->buildAttrs($attrs);
         }
-        
+
         return $attrs ? $this->tag(null, 'img', $class, null, $attrs) : '';
     }
-    
+
     /**
      * Build a list.
-     * 
+     *
      * @param array The list data with each item as a string or an array containing keys 'content', 'class'.
      * @param string Optional class name.
      * @param string Optional attributes.
@@ -199,7 +199,7 @@ class SimpleMarkup
         if(!is_array($list) || empty($list)){
             return '';
         }
-        
+
         $items = '';
         for($l=0, $lc=count($list); $l<$lc; $l++)
         {
@@ -207,7 +207,7 @@ class SimpleMarkup
             $itemClass = '';
             $itemAttrs = '';
             $item = $list[$l];
-            
+
             if(is_string($item))
             {
                 $content = $item;
@@ -218,7 +218,7 @@ class SimpleMarkup
                 $itemClass = SimpleUtil::getValue($item, 'class');
                 $itemAttrs = SimpleUtil::getValue($item, 'attrs');
             }
-            
+
             if($content)
             {
                 if($l == 0){ $itemClass = ($itemClass ? ' ' : '').'first'; }
@@ -226,23 +226,23 @@ class SimpleMarkup
                 $items .= $this->tag($content, 'li', $itemClass, null, $itemAttrs);
             }
         }
-        
+
         return $this->tag($items, $type, $class, null, $attrs);
     }
-    
+
     /**
      * Wrapper around ul to build an ordered list.
-     * 
+     *
      * @see ul.
     **/
     public function ol($list, $class = '', $attrs = '')
     {
         return $this->ul($list, $class, $attrs, 'ol');
     }
-    
+
     /**
      * Build a form label.
-     * 
+     *
      * @param string The label value.
      * @param string Field name the label is for.
      * @param string Class name to add to the tag.
@@ -254,10 +254,10 @@ class SimpleMarkup
     {
         return $this->tag($content, 'label', $class, null, $this->buildAttrs($attrs, array('for'=>$for)));
     }
-    
+
     /**
      * Build a form input.
-     * 
+     *
      * @param string The input type.
      * @param string Class name to add to the tag.
      * @param string URL to create a link from.
@@ -270,10 +270,10 @@ class SimpleMarkup
         $attrs = ($name ? 'name="'.$name.'" ' : '').$this->buildAttrs($attrs, array('type'=>$type, 'value'=>$value));
         return $this->tag(null, 'input', $class, null, $attrs);
     }
-    
+
     /**
      * Build a form button.
-     * 
+     *
      * @param string The button value.
      * @param string Field name the label is for.
      * @param string Class name to add to the tag.
@@ -286,10 +286,10 @@ class SimpleMarkup
         $attrs = $this->buildAttrs($attrs, array('type'=>$type));
         return $this->tag($content, 'button', $class, null, $attrs);
     }
-    
+
     /**
      * Build a select.
-     * 
+     *
      * @param array A hash where each key is used as the option value and the value is used as the option text. Each value may also be an array containing optional keys 'label', 'value', 'class', 'type', and 'attrs'. Arrays can be nested to create option groups. Each group must contain a 'label' for the group text and a 'value' containing an array of nested options.
      * @param string Optional selected value. May be an array for multiselects.
      * @param string Optional class name.
@@ -301,10 +301,10 @@ class SimpleMarkup
         return $this->tag($this->parseOptions($options, $selected),
             'select', $class, null, $this->buildAttrs($attrs, array('name'=>$name)));
     }
-    
+
     /**
      * Build a textarea.
-     * 
+     *
      * @param array Field name.
      * @param string Optional value. Will be properly encoded (TODO).
      * @param string Optional class name.
@@ -315,10 +315,10 @@ class SimpleMarkup
     {
         return $this->tag('textarea', $class, $value, $this->buildAttrs($attrs, array('name'=>$name)));
     }
-    
+
     /**
      * Build option markup for select().
-     * 
+     *
      * @param array Options, see select() for details.
      * @return string Options markup or empty string if $data is empty.
     **/
@@ -327,7 +327,7 @@ class SimpleMarkup
         if(!is_array($options) || empty($options)){
             return '';
         }
-        
+
         $optionMarkup = '';
         foreach($options as $value => $option)
         {
@@ -336,7 +336,7 @@ class SimpleMarkup
             $optionAttrs = '';
             $valueAttr = '';
             $selectedAttr = '';
-            
+
             if(is_string($option))
             {
                 $label = $option;
@@ -348,7 +348,7 @@ class SimpleMarkup
                 $optionClass = SimpleUtil::getValue($option, 'class');
                 $optionAttrs = SimpleUtil::getValue($option, 'attrs');
             }
-            
+
             if($label)
             {
                 if(is_array($value))
@@ -365,13 +365,13 @@ class SimpleMarkup
                 $optionMarkup .= $this->tag($content, 'option', $optionClass, null, $attrs);
             }
         }
-        
+
         return $optionMarkup;
     }
-    
+
     /**
      * Build a module using the YUI common module format.
-     * 
+     *
      * @param string The header content.
      * @param string The body content.
      * @param string The footer content.
