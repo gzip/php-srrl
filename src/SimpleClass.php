@@ -3,45 +3,45 @@
 Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms. */
 
 class SimpleClass
-{    
+{
     /**
      * @var array
      */
     private $options = array();
-    
+
     /**
      * @var bool
      */
     protected $debug = false;
-    
+
     /**
      * @var bool
      */
     protected $backtrace = false;
-    
+
     /**
      * @var array
      */
     protected $settable = array('debug', 'backtrace');
-    
+
     /**
      * @var array
      */
     protected $pushable = array('gettable', 'pushable', 'settable', 'setters');
-    
+
     /**
      * @var array
      */
     protected $setters = array();
-    
+
     /**
      * @var array
      */
     protected $gettable = array();
-    
+
     /**
      * Constructor.
-     * 
+     *
      * @param array Options.
     **/
     public function __construct($params = array())
@@ -49,16 +49,16 @@ class SimpleClass
         // seed setters
         $this->setters['setters'] = $this->setSetter('setSetter');
         $this->addSetter('pushable', 'setStringOrArray');
-        
+
         $this->setupParams();
         $this->setParams($params);
-        
+
         $this->setup();
     }
-    
+
     /**
      * Magic method used as getter/setter.
-     * 
+     *
      * @param string Invoked method name.
      * @param array Arguments passed to the method.
     **/
@@ -98,7 +98,7 @@ class SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Get the param and action for __call.
     **/
@@ -106,33 +106,33 @@ class SimpleClass
     {
         $pos = 0;
         $len = strlen($method);
-        while($pos < $len && 96 < ord($method{$pos}) && ord($method{$pos}) < 123)
+        while($pos < $len && 96 < ord($method[$pos]) && ord($method[$pos]) < 123)
         {
             $pos++;
         }
         $action = substr($method, 0, $pos);
         $param = strtolower(substr($method, $pos, 1)).substr($method, $pos+1);
-        
+
         return array($param, $action);
     }
-    
+
     /**
      * Setup.
     **/
     public function setup()
     {
     }
-    
+
     /**
      * Setup parameters.
     **/
     public function setupParams()
     {
     }
-    
+
     /**
      * Handle unknown method.
-     * 
+     *
      * @param string Method name.
      * @param string Method args.
     **/
@@ -141,20 +141,20 @@ class SimpleClass
         error_log('Unknown method: '.get_class($this).'->'.$method);
         return null;
     }
-    
+
     /**
      * Getter.
-     * 
+     *
      * @param string Property name.
     **/
     public function get($name)
     {
         return $this->isGettable($name) ? $this->{$name} : null;
     }
-    
+
     /**
      * Setter.
-     * 
+     *
      * @param string Property name.
     **/
     public function set($name, $value)
@@ -170,10 +170,10 @@ class SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Pusher.
-     * 
+     *
      * @param string Property name.
     **/
     protected function push($name, $value, $key)
@@ -186,13 +186,13 @@ class SimpleClass
             {
                 $value = array($value);
             }
-            
+
             if($key && count($value) > 1)
             {
                 $key = null;
                 $this->log("Pushing to property '$name' but discarding key '$key' passed with array value.");
             }
-            
+
             foreach($value as $k=>$v)
             {
                 $result = $this->verifyParameterValue($name, $v);
@@ -214,13 +214,13 @@ class SimpleClass
         {
             $this->log("Property '$name' is not pushable.");
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Verify a parameter against it's setter. The setter should return null for failure.
-     * 
+     *
      * @param mixed Property name.
     **/
     protected function verifyParameterValue($param, $value)
@@ -235,37 +235,37 @@ class SimpleClass
         }
         return $value;
     }
-    
+
     /**
      * Check if a parameter is pushable.
-     * 
+     *
      * @param string Property name.
     **/
     protected function isPushable($name)
     {
         return in_array($name, $this->pushable);
     }
-    
+
     /**
      * Check if a parameter is gettable.
-     * 
+     *
      * @param string Property name.
     **/
     protected function isGettable($name)
     {
         return $this->isSettable($name) || in_array($name, $this->gettable);
     }
-    
+
     /**
      * Check if a parameter is settable.
-     * 
+     *
      * @param string Property name.
     **/
     protected function isSettable($name)
     {
         return in_array($name, $this->settable) || $this->isPushable($name);
     }
-    
+
     /**
      * Setter for setters.
     **/
@@ -274,10 +274,10 @@ class SimpleClass
         $result = $this->resolveCallable($setter);
         return empty($result) ? null : $result;
     }
-    
+
     /**
      * Setter for booleans.
-     * 
+     *
      * @param string Property name.
      * @param bool Property value.
     **/
@@ -285,10 +285,10 @@ class SimpleClass
     {
         return is_bool($value) ? $value : null;
     }
-    
+
     /**
      * Setter for arrays.
-     * 
+     *
      * @param string Property name.
      * @param array Property value.
     **/
@@ -296,10 +296,10 @@ class SimpleClass
     {
         return is_array($value) ? $value : null;
     }
-    
+
     /**
      * Setter for strings.
-     * 
+     *
      * @param string Property name.
      * @param array Property value.
     **/
@@ -307,10 +307,10 @@ class SimpleClass
     {
         return is_string($value) ? $value : null;
     }
-    
+
     /**
      * Setter for strings.
-     * 
+     *
      * @param string Property name.
      * @param array Property value.
     **/
@@ -318,10 +318,10 @@ class SimpleClass
     {
         return $this->setString($value) || $this->setArray($value);
     }
-    
+
     /**
      * Set public parameters.
-     * 
+     *
      * @param array Array of public parameters, keyed by name.
     **/
     public function setParams($params = array())
@@ -334,10 +334,10 @@ class SimpleClass
             }
         }
     }
-    
+
     /**
      * Set options as used with getOption.
-     * 
+     *
      * @param array
      * @see SimpleClass::getOption
     **/
@@ -348,13 +348,13 @@ class SimpleClass
             $this->options = $options;
         }
     }
-    
+
     /**
      * Convenience wrapper around SimpleUtil::getValue() for $this->options.
      * Meant to be used within methods which accept an array of arguments.
      *
      * Currently public for SimpleRequest::multiQuery
-     * 
+     *
      * @param string Option name.
      * @param mixed Default value if name is not present.
      * @return bool Whether to allow empty values.
@@ -363,10 +363,10 @@ class SimpleClass
     {
         return SimpleUtil::getValue($this->options, $name, $default, $allowEmpty);
     }
-    
+
     /**
      * Determine if a value is callable by call_user_func.
-     * 
+     *
      * @param mixed Procedural function name, or method name of current object, or array($objectinstance, $methodname), or singleton.
      * @return mixed Function or null on error.
     **/
@@ -380,7 +380,7 @@ class SimpleClass
                 $call = array($this, $call);
             }
         }
-        
+
         if(is_array($call))
         {
             if(
@@ -397,13 +397,13 @@ class SimpleClass
                 $call = null;
             }
         }
-        
+
         return $call;
     }
-    
+
     /**
      * Convenience wrapper around SimpleUtil::log.
-     * 
+     *
      * @param (mixed) String to log or variable to dump.
      * @return (void)
     **/
@@ -422,7 +422,7 @@ class SimpleClass
                 $msg .= "\n".$details['class'].$details['type'].$details['function'].'();'.(@$details['line'] ? ' on line '.$details['line'] : '');
             }
         }
-        
+
         SimpleUtil::log($msg);
     }
 }
