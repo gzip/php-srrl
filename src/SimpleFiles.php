@@ -6,14 +6,14 @@ class SimpleFiles
 {
     function __construct()
     {
-    
+
     }
-    
-    static function readDir($dir, $regex = '', $recursive = true)
+
+    static function readDir($dir, $filters = '', $recursive = false, &$allMatches = array(), $flags = 0)
     {
         $files = array();
         $handle = opendir($dir);
-        
+
         if($handle)
         {
             $files = array();
@@ -23,35 +23,49 @@ class SimpleFiles
                 {
                     continue;
                 }
-                
+
                 // prepend dir
                 $file = self::addSlash($dir).$file;
-                
+
                 if(is_dir($file))
                 {
                     if($recursive)
                     {
-                        $files = array_merge($files, self::readDir($file, $regex, $recursive));
+                        $files = array_merge($files, self::readDir($file, $filters, $recursive));
                     }
                 }
                 else
                 {
-                    if(empty($regex))
-                    {
-                        $include = true;
+                    if(empty($filters)) {
+                        $files[] = realpath($file);
                     } else {
-                        $include = preg_match($regex, $file);
+                        if (is_string($filters)) {
+                            $filters = array($filters);
+                        }
+
+                        if (!is_array($filters)) {
+                            return $files;
+                        }
+
+                        foreach($filters as $regex)
+                        {
+                            if(is_string($regex) && preg_match($regex, $file, $matches, $flags))
+                            {
+                                $allMatches[] = $matches;
+                                $files[] = realpath($file);
+                                break;
+                            }
+                        }
                     }
-                    if($include){ $files[] = realpath($file); }
                 }
             }
-    
+
             closedir($handle);
         }
-        
+
         return $files;
     }
-    
+
     static function checkDir($dir, $create = true, $restrict = null)
     {
         if(is_dir($dir))
@@ -73,10 +87,10 @@ class SimpleFiles
             return false;
         }
     }
-    
+
     /**
      * Include a file and return the contents.
-     * 
+     *
      * @param string Path to file.
      * @param array Hash of vars to set prior to inclusion.
      * @return string Result of file execution.
@@ -84,23 +98,23 @@ class SimpleFiles
     static function executeFile($path, $vars = array())
     {
         ob_start();
-        
+
         // populate any expected vars
         foreach($vars as $key=>$value)
         {
             $$key = $value;
         }
-        
+
         @include $path;
         $result = ob_get_contents();
         ob_end_clean();
-        
+
         return $result;
     }
-    
+
     /**
      * Read a file.
-     * 
+     *
      * @param string Path to file.
      * @param array Options for read.
      * @return string/handle.
@@ -110,10 +124,10 @@ class SimpleFiles
         // TODO: support file() and fopen() via $options['method'] = 'file'
         return file_get_contents($path);
     }
-    
+
     /**
      * Write a file with optional content and mask.
-     * 
+     *
      * @param string Path to file.
      * @param string File contents.
      * @param int Optional file mask.
@@ -124,7 +138,7 @@ class SimpleFiles
     {
         $dir = dirname($path);
         $result = true === self::checkDir(self::addSlash($dir), true, $_SERVER['DOCUMENT_ROOT']) ? true : false;
-        
+
         if($result)
         {
             $result = false === file_put_contents($path, $content, $flags) ? false : true;
@@ -133,10 +147,10 @@ class SimpleFiles
                 $result = chmod($path, $mask);
             }
         }
-        
+
         return $result;
     }
-    
+
     static function addSlash($path)
     {
         return substr($path, -1) === '/' ? $path : $path.'/';
