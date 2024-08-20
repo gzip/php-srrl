@@ -8,25 +8,30 @@ class SimpleModule extends SimpleClass
      * @var object
      */
     protected $page = null;
-    
+
     /**
      * @var object
      */
     protected $setKeys = array();
-    
+
     /**
      * @var bool
      */
     protected $final = true;
-    
+
     /**
      * @var object
      */
     protected $cacheObject = null;
-    
+
+    /**
+     * @var object
+     */
+    public $html = null;
+
     /**
      * Called by SimpleClass::__construct prior to setParams.
-     * 
+     *
      * @return void
      **/
     public function setupParams()
@@ -34,10 +39,10 @@ class SimpleModule extends SimpleClass
         $this->addSettable('page');
         $this->addGettable(array('data', 'setKeys', 'final'));
     }
-    
+
     /**
      * Setup the module.
-     * 
+     *
      * @return bool False to fail the module.
     **/
     public function setup()
@@ -45,10 +50,10 @@ class SimpleModule extends SimpleClass
         $this->html = new SimpleMarkup;
         return true;
     }
-    
+
     /**
      * Get module cache.
-     * 
+     *
      * @return object SimpleCache object.
     **/
     public function getCacheObject()
@@ -59,60 +64,60 @@ class SimpleModule extends SimpleClass
         }
         return $this->cacheObject;
     }
-    
+
     /**
      * Init module cache.
-     * 
+     *
      * @return object SimpleCache object.
     **/
     protected function initCacheObject()
     {
         return null;
     }
-    
+
     /**
      * Get the module's data.
-     * 
+     *
      * @return mixed False to fail the module.
     **/
     public function getData()
     {
         return true;
     }
-    
+
     /**
      * Render the module.
-     * 
+     *
      * @return string Module content.
     **/
     public function render($data)
     {
         return $data;
     }
-    
+
     /**
      * Return assets for this module.
-     * 
+     *
      * @return array Assets.
     **/
     public function getAssets()
     {
         return array();
     }
-    
+
     /**
      * Set the page title.
-     * 
+     *
      * @return array Assets.
     **/
     protected function setPageTitle($title)
     {
         return $this->setPageKey('title', $title);
     }
-    
+
     /**
      * Set the page title.
-     * 
+     *
      * @return array Assets.
     **/
     protected function setPageKey($key, $value)

@@ -1,15 +1,16 @@
-<phpunit bootstrap="../src/includes.php">
-<testsuites>
-  <testsuite name="SRRL Test Suite">
-    <directory>./</directory>
-  </testsuite>
-</testsuites>
-<filter>
-  <whitelist addUncoveredFilesFromWhitelist="true">
-    <directory suffix=".php">../src</directory>
+<?xml version="1.0"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" bootstrap="../src/includes.php" xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.3/phpunit.xsd" cacheDirectory=".phpunit.cache">
+  <testsuites>
+    <testsuite name="SRRL Test Suite">
+      <directory>./</directory>
+    </testsuite>
+  </testsuites>
+  <source>
+    <include>
+      <directory suffix=".php">../src</directory>
+    </include>
     <exclude>
       <directory suffix=".php">../src/lib</directory>
     </exclude>
-  </whitelist>
-</filter>
+  </source>
 </phpunit>

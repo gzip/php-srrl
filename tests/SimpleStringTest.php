@@ -1,6 +1,6 @@
 <?php
 
-class SimpleStringTest extends PHPUnit_Framework_TestCase
+class SimpleStringTest extends PHPUnit\Framework\TestCase
 {
     public function testRenderTemplate()
     {

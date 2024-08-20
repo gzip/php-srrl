@@ -2,16 +2,17 @@
 /* Copyright (c) 2013 Yahoo! Inc. All rights reserved.
 Copyrights licensed under the MIT License. See the accompanying LICENSE file for terms. */
 
-class SimpleSqlTest extends PHPUnit_Framework_TestCase
+class SimpleSqlTest extends PHPUnit\Framework\TestCase
 {
     protected $object;
+    protected $sql;
 
-    protected function setUp($options = array())
+    protected function setUp($options = array()) : void
     {
         $this->sql = new SimpleSqlProxy(array_merge(array('db'=>'my_db', 'table'=>'my_table'), $options));
     }
 
-    protected function tearDown()
+    protected function tearDown() : void
     {
     }
 
@@ -131,36 +132,36 @@ class SimpleSqlTest extends PHPUnit_Framework_TestCase
         $this->assertEquals('ALTER TABLE `my_table` MODIFY foo char(10)', $this->sql->alter(
             array('action'=>'modify', 'fields'=>array('foo'=>'char(10)'))
         ));
-        
+
         $this->assertFalse($this->sql->alter(
             array('action'=>'modify', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
         ));
-        
+
         $this->assertEquals('ALTER TABLE `my_table` ADD bar date', $this->sql->alter(
             array('action'=>'add', 'fields'=>array('bar'=>'date'))
         ));
-        
+
         $this->assertEquals('ALTER TABLE `my_table` ADD (foo char(10), bar date)', $this->sql->alter(
             array('action'=>'add', 'fields'=>array('foo'=>'char(10)', 'bar'=>'date'))
         ));
-        
+
         $this->assertFalse($this->sql->alter(
             array('action'=>'MODIPHY', 'fields'=>array('foo'=>'char(10)'))
         ));
-        
+
         $this->assertEquals('ALTER TABLE `my_table` DROP COLUMN foo', $this->sql->alter(
             array('action'=>'drop', 'fields'=>array('COLUMN'=>'foo'))
         ));
-        
+
         $this->assertFalse($this->sql->alter(
-            array('action'=>'MODIFY')
+            array('action'=>'MODIFY', 'fields'=>array())
         ));
     }
 
     public function testGetDsn()
     {
         $this->assertEquals('mysql:host=localhost;dbname=my_db', $this->sql->getDsn());
-        
+
         $this->setUp(array(
             'db'=>'a_db', 'driver'=>'sqlite', 'password'=>'pass', 'port'=>8080, 'user'=>'u'
         ));
@@ -193,7 +194,7 @@ class PdoMock
     {
         return '"' . $val . '"';
     }
-    
+
     function __call($method, $args)
     {
         if(in_array($method, array('exec', 'query', 'prepare', 'quote')))

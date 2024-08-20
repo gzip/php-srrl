@@ -1,6 +1,6 @@
 <?php
 
-class SimpleUtilTest extends PHPUnit_Framework_TestCase
+class SimpleUtilTest extends PHPUnit\Framework\TestCase
 {
     public function testGetValue()
     {
@@ -53,14 +53,14 @@ class SimpleUtilTest extends PHPUnit_Framework_TestCase
     public function testGetResourceId()
     {
         $res = curl_init();
-        $this->assertInternalType('int', SimpleUtil::getResourceId($res));
+        $this->assertIsInt(SimpleUtil::getResourceId($res));
         $this->assertEquals(0, SimpleUtil::getResourceId(false));
     }
 
     public function testArrayVal()
     {
-        $this->assertInternalType('array', SimpleUtil::arrayVal(array()));
-        $this->assertInternalType('array', SimpleUtil::arrayVal(1));
+        $this->assertIsArray(SimpleUtil::arrayVal(array()));
+        $this->assertIsArray(SimpleUtil::arrayVal(1));
         $this->assertEquals(array(array('foo'=>'bar')), SimpleUtil::arrayVal(array('foo'=>'bar')));
     }
 
