@@ -9,32 +9,32 @@ class SimpleHttp extends SimpleClass
      * @var array
      */
     static protected $headers = null;
-    
+
     /**
      * Stores sent headers for testing.
      * @var array
      */
     static protected $headersSent = array();
-    
+
     /**
      * Stores the request body.
      * @var array
      */
     static protected $requestBody = null;
-    
+
     /**
      * Called by SimpleClass::__construct prior to setParams.
-     * 
+     *
      * @return void
      **/
     public function setupParams()
     {
         //$this->addSettable(array());
     }
-    
+
     /**
      * Get the request body.
-     * 
+     *
      * @param bool Attempt to parse if json, xml, or form encoded.
      * @param mixed Parse option, e.g. json_decode as array.
      * @return mixed The raw or parsed body.
@@ -51,7 +51,7 @@ class SimpleHttp extends SimpleClass
                     list($contentType) = explode(';', self::getHeader('Content-Type'));
                     $parse = self::normalizeContentType($contentType);
                 }
-                
+
                 switch($parse)
                 {
                     case 'json':
@@ -68,16 +68,16 @@ class SimpleHttp extends SimpleClass
                         // log
                 }
             }
-            
+
             self::$requestBody = $data;
         }
-        
+
         return self::$requestBody;
     }
 
     /**
      * Get the request body.
-     * 
+     *
      * @param string Header name.
      * @param string Header value.
      * @return bool Whether header was sent.
@@ -93,7 +93,7 @@ class SimpleHttp extends SimpleClass
             return false;
         }
     }
-    
+
     /**
      * @return string The header value or empty if not found.
      **/
@@ -102,10 +102,10 @@ class SimpleHttp extends SimpleClass
         $headers = self::getHeaders();
         return is_null($header) ? $headers : SimpleUtil::getValue($headers, $header);
     }
-    
+
     /**
      * Get request headers.
-     * 
+     *
      * @return array Headers
      **/
     static public function getHeaders()
@@ -114,13 +114,13 @@ class SimpleHttp extends SimpleClass
         {
             self::$headers = apache_request_headers();
         }
-        
+
         return self::$headers;
     }
-    
+
     /**
      * Get the request's Content-Type header.
-     * 
+     *
      * @param bool Attempt to normalize to `json`, `xml`, or `form`.
      * @return string The content type.
      **/
@@ -128,10 +128,10 @@ class SimpleHttp extends SimpleClass
     {
         return self::getHeader('Content-Type');
     }
-    
+
     /**
      * Serve a content type header.
-     * 
+     *
      * @param string The type. May be a valid content type or one of `json`, `xml`, or `form`.
      * @return void
      **/
@@ -139,10 +139,10 @@ class SimpleHttp extends SimpleClass
     {
         return self::sendHeader('Content-Type', self::denormalizeContentType($type));
     }
-    
+
     /**
      * Serve a content type header.
-     * 
+     *
      * @param string Should be one of `Origin`, `Methods`, or `Headers`.
      * @param mixed String ot array value. The latter will be joined comma separated.
      **/
@@ -150,10 +150,10 @@ class SimpleHttp extends SimpleClass
     {
         return self::sendHeader('Access-Control-'.($type !== 'Max-Age' ? 'Allow-' : '').$type, $value);
     }
-    
+
     /**
      * Get the request's Accept header as an array.
-     * 
+     *
      * @param bool Attempt to normalize content types.
      * @return array Array of acceptable types.
      **/
@@ -162,16 +162,17 @@ class SimpleHttp extends SimpleClass
         $accept = explode(',', self::getHeader('Accept'));
         foreach($accept as $key=>$value)
         {
-            $type = array_shift(explode(';', $value));
+            $parts = explode(';', $value);
+            $type = array_shift($parts);
             $accept[$key] = $normalize ? self::normalizeContentType($type) : $type;
         }
-        
+
         return $accept;
     }
-    
+
     /**
      * Serve the headers required to trigger a file download.
-     * 
+     *
      * @param string The filename.
      * @return void
      **/
@@ -186,13 +187,13 @@ class SimpleHttp extends SimpleClass
             self::sendHeader('Content-Disposition', 'attachment; filename="'.$filename.'";');
             self::sendHeader('Content-Transfer-Encoding', 'binary');
             //self::sendHeader('Content-Type', $filetype);
-            //self::sendHeader('Content-Length', $filesize); 
+            //self::sendHeader('Content-Length', $filesize);
         }
     }
-    
+
     /**
      * Serve a cache control header.
-     * 
+     *
      * @param int Expire time. The default 0 will result in a no-cache header.
      * @return void
      **/
@@ -209,10 +210,10 @@ class SimpleHttp extends SimpleClass
             self::sendHeader('Expires', '0');
         }
     }
-    
+
     /**
      * Serve a redirect header and halt execution.
-     * 
+     *
      * @param string URL.
      * @param bool True for 302, false for 301 (default).
      * @return void
@@ -222,10 +223,10 @@ class SimpleHttp extends SimpleClass
         self::location($url, $temporary ? 302 : 301);
         exit;
     }
-    
+
     /**
      * Serve a location header.
-     * 
+     *
      * @param string URL.
      * @param int Status code.
      * @return void
@@ -235,30 +236,30 @@ class SimpleHttp extends SimpleClass
         // TODO parse_url and ensure canonical
         self::sendHeader('Location', $url, true, $code);
     }
-    
+
     /**
      * Test if the incoming request is over SSL.
-     * 
+     *
      * @return bool
      **/
     static public function isSsl()
     {
         return SimpleUtil::getValue($_SERVER, 'HTTPS') === 'on' || $_SERVER['SERVER_PORT'] === '443';
     }
-    
+
     /**
      * Get protocol.
-     * 
+     *
      * @return string,"http://" or "https://".
      **/
     static public function getProtocol()
     {
         return (self::isSsl() ? 'https' : 'http') . '://';
     }
-    
+
     /**
      * Get hostname.
-     * 
+     *
      * @return string.
      * @TODO handle missing host header
      **/
@@ -266,10 +267,10 @@ class SimpleHttp extends SimpleClass
     {
         return SimpleUtil::getValue($_SERVER, 'HTTP_HOST');
     }
-    
+
     /**
      * Serve an success header.
-     * 
+     *
      * @param int 2xx status code.
      * @param string Optional message. Will use HTTP defaults if omitted.
      * @return void
@@ -286,13 +287,13 @@ class SimpleHttp extends SimpleClass
                 case 204: $msg = 'No Content'; break;
             }
         }
-        
+
         header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$msg);
     }
-    
+
     /**
      * Serve an error header and optionally exit.
-     * 
+     *
      * @param int Status code.
      * @param string Optional error message. Will use self::getErrorMessage if omitted.
      * @param bool Halt further execution.
@@ -305,17 +306,17 @@ class SimpleHttp extends SimpleClass
         {
             $msg = self::getErrorMessage($status);
         }
-        
+
         header($_SERVER['SERVER_PROTOCOL'].' '.$status.' '.$msg);
-        
+
         if($exit){
             exit($status.' '.$msg);
         }
     }
-    
+
     /**
      * Look up error message by common HTTP codes.
-     * 
+     *
      * @param int Status code.
      * @return string Error message.
      **/
@@ -334,13 +335,13 @@ class SimpleHttp extends SimpleClass
             case 503: $msg = 'Service Unavailable'; break;
             default:  $msg = 'Unknown Error'; break;
         }
-        
+
         return $msg;
     }
-    
+
     /**
      * Normalize content type to a more friendly format.
-     * 
+     *
      * @param string Content type.
      * @return string Normalized type or $contentType if unknown
      **/
@@ -368,13 +369,13 @@ class SimpleHttp extends SimpleClass
                 $contentType = 'atom';
             break;
         }
-        
+
         return $contentType;
     }
-    
+
     /**
      * Denormalize generic type to a valid content type.
-     * 
+     *
      * @param string Generic type, either <code>json</code>, <code>xml</code>, or <code>form</code>.
      * @return string Content Type if known.
      **/
@@ -398,7 +399,7 @@ class SimpleHttp extends SimpleClass
                 $contentType = 'application/atom+xml';
             break;
         }
-        
+
         return $type;
     }
 }
@@ -415,7 +416,7 @@ if(!function_exists('apache_request_headers'))
         $headers = array();
         $match = 'HTTP_';
         $matchLength = strlen($match);
-        
+
         foreach($_SERVER as $key=>$value)
         {
             if($match === substr($key, 0, $matchLength))
@@ -424,12 +425,12 @@ if(!function_exists('apache_request_headers'))
                 $key = implode('-', array_map('ucfirst', explode('_',
                     strtolower(substr($key, $matchLength))
                 )));
-                
+
                 // store value with normalized key
                 $headers[$key] = $value;
             }
         }
-        
+
         return $headers;
     }
 }
