@@ -55,6 +55,11 @@ class SimplePage extends SimpleClass
     protected $moduleRoot = array();
 
     /**
+     * @var object
+     */
+    protected $markup = null;
+
+    /**
      * Check protected params for Mustache.
      *
      * @return bool Is param present.
