@@ -501,7 +501,7 @@ class SimplePage extends SimpleClass
     **/
     protected function resolveTemplate($template)
     {
-        if(preg_match('/^[0-9a-zA-Z._\-\/]+$/', $template)){
+        if(preg_match('/^[0-9a-zA-Z_\.\-\/\:]+$/', $template) && Is_file($template)){
             $template = file_get_contents($template);
         }
         return $template;
