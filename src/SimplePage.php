@@ -274,8 +274,8 @@ class SimplePage extends SimpleClass
     protected function checkForRequestData($mod, $data, $name)
     {
         $result = null;
-        
-        if(SimpleUtil::isObject($data, 'SimpleRequest') || is_resource($data))
+
+        if(SimpleUtil::isObject($data, 'SimpleRequest') || SimpleUtil::isObject($data, 'CurlHandle') || is_resource($data))
         {
             $this->results[] = array('module'=>$mod, 'request'=>$data, 'name'=>$name);
             $result = '~~'.$name.'~~';
