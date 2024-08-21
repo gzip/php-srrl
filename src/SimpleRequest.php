@@ -286,14 +286,15 @@ class SimpleRequest extends SimpleClass
             foreach($queries as $key=>$query)
             {
                 $isRequest = is_a($query, 'SimpleRequest');
-                $isResource = is_resource($query); // prior to php 8
+                $isResource = is_resource($query);          // prior to php 8
                 $isCurlHandle = is_a($query, 'CurlHandle'); // new in php 8
 
-                $handle = $isRequest ? $query->getHandle() : $query;
-
-                if($isResource || $isCurlHandle)
+                if($isRequest || $isResource || $isCurlHandle)
                 {
-                    // store key to return results in same order and request for later use
+                    // get handle if it's a SimpleRequest
+                    $handle = $isRequest ? $query->getHandle() : $query;
+
+                    // store key to return results in same order
                     $id = SimpleRequest::getResourceId($handle);
                     $keys[$id] = array('key'=>$key, 'request'=>($isRequest ? $query : false));
                     curl_multi_add_handle($multi, $handle);
@@ -317,8 +318,11 @@ class SimpleRequest extends SimpleClass
                     {
                         case CURLE_OK:
                             $content = curl_multi_getcontent($handle);
-                            $results[$key] = SimpleUtil::isObject($request, 'SimpleRequest') && $request->getParse() ?
-                                $this->parseResponse($content, $request->getHandle()) : $content;
+                            if (SimpleUtil::isObject($request, 'SimpleRequest') && $request->getParse()) {
+                                $results[$key] = $this->parseResponse($content, $request->getHandle());
+                            } else {
+                                $results[$key] = $content;
+                            }
                         break;
                         default:
                             $results[$key] = false;
@@ -408,7 +412,10 @@ class SimpleRequest extends SimpleClass
     {
         $result = false;
         if(is_null($handle)){ $handle = $this->handle; }
-        $contentType = array_shift(explode(';', (string)curl_getinfo($handle, CURLINFO_CONTENT_TYPE)));
+
+        $types = explode(';', (string)curl_getinfo($handle, CURLINFO_CONTENT_TYPE));
+        $contentType = array_shift($types);
+
         switch(SimpleHttp::normalizeContentType($contentType))
         {
             case 'json':
