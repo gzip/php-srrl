@@ -473,7 +473,7 @@ class SimplePage extends SimpleClass
             case $url = SimpleUtil::getValue($asset, 'url'):
                 if($type == 'css'){
                     $attrs = $this->markup->buildAttrs($attrs, array('rel'=>'stylesheet', 'type'=>'text/css', 'href'=>$url));
-                    $result = $this->markup->link($attrs);
+                    $result = $this->markup->link(SimpleMarkup::NO_VALUE, null, $attrs);
                 } else {
                     $attrs = $this->markup->buildAttrs($attrs, array('src'=>$url));
                     $result = $this->markup->script(SimpleMarkup::NO_VALUE, null, $attrs);
