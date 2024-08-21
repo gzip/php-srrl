@@ -8,47 +8,47 @@ class SimplePage extends SimpleClass
      * @var string
      */
     protected $meta = '';
-    
+
     /**
      * @var string
      */
     protected $assets = array();
-    
+
     /**
      * @var string
      */
     protected $template = '';
-    
+
     /**
      * @var string
      */
     protected $subtemplates = '';
-    
+
     /**
      * @var string
      */
     protected $phase = '';
-    
+
     /**
      * @var array
      */
     protected $keys = array();
-    
+
     /**
      * @var array
      */
     protected $modules = array();
-    
+
     /**
      * @var array
      */
     protected $results = array();
-    
+
     /**
      * @var array
      */
     protected $nameIndex = array();
-    
+
     /**
      * @var array
      */
@@ -56,7 +56,7 @@ class SimplePage extends SimpleClass
 
     /**
      * Check protected params for Mustache.
-     * 
+     *
      * @return bool Is param present.
     **/
     public function __isset($name)
@@ -79,10 +79,10 @@ class SimplePage extends SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Get protected params for Mustache.
-     * 
+     *
      * @return string Param value.
     **/
     public function __get($name)
@@ -136,10 +136,10 @@ class SimplePage extends SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Called by SimpleClass::__construct prior to setParams.
-     * 
+     *
      * @return void
      **/
     public function setupParams()
@@ -147,10 +147,10 @@ class SimplePage extends SimpleClass
         $this->addSettable(array('meta', 'template'));
         $this->addPushable(array('subtemplates', 'moduleRoot', 'modules', 'keys'));
     }
-    
+
     /**
      * Setup.
-     * 
+     *
      * @param bool False for failure.
     **/
     public function setup()
@@ -160,10 +160,10 @@ class SimplePage extends SimpleClass
         }
         $this->assets = $this->getAssets();
     }
-    
+
     /**
      * Include the class file and check if the class exists.
-     * 
+     *
      * @return bool Result of file inclusion and class check.
     **/
     protected function verifyModule($name)
@@ -190,13 +190,13 @@ class SimplePage extends SimpleClass
         } else {
             $this->log('Class '.$className. ' not found.');
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Instantiate and execute the module.
-     * 
+     *
      * @return string Result of execution.
     **/
     protected function handleModule($name)
@@ -205,9 +205,9 @@ class SimplePage extends SimpleClass
         $config = SimpleUtil::getValue($this->modules, $name, array());
         $className = SimpleUtil::getValue($config, 'class', $name);
         $params = SimpleUtil::getValue($config, 'params', array());
-        
+
         $mod = new $className(array_merge($params, array('page'=>$this)));
-        
+
         if(is_a($mod, 'SimpleModule'))
         {
             $result = $mod->setup();
@@ -219,20 +219,20 @@ class SimplePage extends SimpleClass
         } else {
             $this->log('Class '.$className. ' is not derived from SimpleModule, skipping.');
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Instantiate and execute the module.
-     * 
+     *
      * @return string Result of execution.
     **/
     protected function handleModuleData($name, $mod, $data = null)
     {
         $modClass = get_class($mod);
         list($result, $assets) = $this->handleModuleCache($mod);
-        
+
         if(is_null($result))
         {
             $data = $mod->getData($data);
@@ -254,21 +254,21 @@ class SimplePage extends SimpleClass
             {
                 $result = $this->checkForRequestData($mod, $data, $name);
             }
-            
+
             if(is_null($result))
             {
                 list($result, $assets) = $this->handleModuleCache($mod, $data);
             }
         }
-        
+
         $this->addAssets($assets);
-        
+
         return $result;
     }
-    
+
     /**
      * Check if data is a request and handle accordingly.
-     * 
+     *
      * @return string Result of check.
     **/
     protected function checkForRequestData($mod, $data, $name)
@@ -284,14 +284,14 @@ class SimplePage extends SimpleClass
         {
             //$result = '~~'.$name.'~~';
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Instantiate and execute the module.
      * This method will execute twice, first w/o $data, then with $data if cache was empty.
-     * 
+     *
      * @return string Result of execution.
     **/
     protected function handleModuleCache($mod, $data = null)
@@ -300,11 +300,11 @@ class SimplePage extends SimpleClass
         $hasData = !is_null($data);
         $content = $hasData ? $mod->render($data) : null;
         $assets  = $hasData ? $mod->getAssets() : null;
-        
+
         // check if module is cached
         $cacheObj  = $mod->getCacheObject();
         $cacheable = SimpleUtil::isObject($cacheObj, 'SimpleCache');
-        
+
         // handle cache
         if($cacheable)
         {
@@ -336,13 +336,13 @@ class SimplePage extends SimpleClass
                 }
             }
         }
-        
+
         return array($content, $assets);
     }
-    
+
     /**
      * Fetch all web service data in parallel.
-     * 
+     *
      * @return string Param value.
     **/
     protected function fetchAll()
@@ -358,11 +358,11 @@ class SimplePage extends SimpleClass
                 $this->results[$id]['complete'] = true;
             }
         }
-        
+
         $request = new SimpleRequest();
         $handles = $request->multiQuery($requestObjs);
         //$this->log($handles);
-        
+
         if(!empty($handles))
         {
             $this->nameIndex = array();
@@ -370,20 +370,20 @@ class SimplePage extends SimpleClass
             {
                 $result = &$this->results[$id];
                 $result['response'] = $response;
-                
+
                 // add index to lookup, use an array in case there are multi requests
                 $this->nameIndex[$result['name']][] = $id;
-                
-                 // log if debug is enabled
-                 if(SimpleUtil::isObject($result['request'], 'SimpleRequest'))
-                 {
-                     $result['request']->logResult();
-                 }
+
+                // log if debug is enabled
+                if(SimpleUtil::isObject($result['request'], 'SimpleRequest'))
+                {
+                    $result['request']->logResult();
+                }
             }
         }
         //$this->log($this->nameIndex);
     }
-    
+
     /**
      * Set a key which is referenced in the template.
     **/
@@ -391,7 +391,7 @@ class SimplePage extends SimpleClass
     {
         $this->keys[$key] = $value;
     }
-    
+
     /**
      * Get a key.
     **/
@@ -399,20 +399,20 @@ class SimplePage extends SimpleClass
     {
         return SimpleUtil::getValue($this->keys, $key);
     }
-    
+
     /**
      * Return assets for this page.
-     * 
+     *
      * @return array Assets.
     **/
     public function getAssets()
     {
         return array();
     }
-    
+
     /**
      * Add assets.
-     * 
+     *
      * @param array Array of asset configurations.
     **/
     public function addAssets($assets)
@@ -425,10 +425,10 @@ class SimplePage extends SimpleClass
             }
         }
     }
-    
+
     /**
      * Parse assets config into markup.
-     * 
+     *
      * @return string Markup for assets.
     **/
     protected function parseAssets()
@@ -455,13 +455,13 @@ class SimplePage extends SimpleClass
                 $markup[] = $tag;
             }
         }
-        
+
         return implode("\n", array_unique($markup));
     }
-    
+
     /**
      * Parse asset config into markup.
-     * 
+     *
      * @return string Asset markup.
     **/
     protected function parseAsset($asset, $type)
@@ -493,10 +493,10 @@ class SimplePage extends SimpleClass
         }
         return $result;
     }
-    
+
     /**
      * Get template contents from file or string.
-     * 
+     *
      * @return string Template.
     **/
     protected function resolveTemplate($template)
@@ -506,10 +506,10 @@ class SimplePage extends SimpleClass
         }
         return $template;
     }
-    
+
     /**
      * Execute a phase of the page.
-     * 
+     *
      * @return string Full page render.
     **/
     protected function executePhase($template, $phase, $unescaped, $open = '{{', $close = '}}')
@@ -517,31 +517,31 @@ class SimplePage extends SimpleClass
         $this->phase = $phase;
         return SimpleString::renderTemplate(($unescaped ? $open.'%UNESCAPED'.$close : '').$template, $this, array($open, $close));
     }
-    
+
     /**
      * Render the page.
-     * 
+     *
      * @return string Full page render.
     **/
     public function render()
     {
         $this->markup = new SimpleMarkup;
-        
+
         $template = $this->resolveTemplate($this->template);
-        
+
         while(false !== strpos($template, '<<'))
         {
             $template = $this->executePhase($template, 'subtemplates', true, '<<','>>');
         }
-        
+
         $template = $this->executePhase($template, 'modules', true, '[[',']]');
-        
+
         while(count($this->results) && false !== strpos($template, '~~'))
         {
             $this->fetchAll();
             $template = $this->executePhase($template, 'fetch', true, '~~','~~');
         }
-        
+
         return $this->executePhase($template, 'finalize', false);
     }
 }
