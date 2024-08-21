@@ -50,10 +50,10 @@ class SimplePage extends SimpleClass
     protected $nameIndex = array();
     
     /**
-     * @var string
+     * @var array
      */
-    protected $moduleRoot = '';
-    
+    protected $moduleRoot = array();
+
     /**
      * Check protected params for Mustache.
      * 
@@ -144,7 +144,8 @@ class SimplePage extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('meta', 'template', 'subtemplates', 'moduleRoot', 'modules', 'keys'));
+        $this->addSettable(array('meta', 'template'));
+        $this->addPushable(array('subtemplates', 'moduleRoot', 'modules', 'keys'));
     }
     
     /**
@@ -170,11 +171,22 @@ class SimplePage extends SimpleClass
         $result = null;
         $config = SimpleUtil::getValue($this->modules, $name, array());
         $className = SimpleUtil::getValue($config, 'class', $name);
-        
-        include_once $this->moduleRoot.'/'.$className.'.php';
-        
+
+        $fileFound = false;
+        foreach ($this->moduleRoot as $root)
+        {
+            $modulePath = $root.'/'.$className.'.php';
+            if (is_file($modulePath)) {
+                include_once $modulePath;
+                $fileFound = true;
+                break;
+            }
+        }
+
         if(class_exists($className)){
             $result = true;
+        } else if (!$fileFound) {
+            $this->log('Module file '.$className.'.php not found in path(s) '.implode(', ', $this->moduleRoot));
         } else {
             $this->log('Class '.$className. ' not found.');
         }
