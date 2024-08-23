@@ -10,7 +10,7 @@ class SimpleString
 {
     /**
      * Render a template from an object using Mustache.
-     * 
+     *
      * @param (string) Template.
      * @param (object) Object.
     **/
@@ -19,10 +19,10 @@ class SimpleString
         $m = new Mustache(null, null, null, array('delimiters'=>$delims, 'pragmas'=>$pragmas));
         return $m->render($template, $obj);
     }
-    
+
     /**
      * Add params to a string.
-     * 
+     *
      * @param (string) String to append to.
      * @param (string) Prefix to add when params aren't empty.
      * @param (string) Separator to use between params.
@@ -33,7 +33,7 @@ class SimpleString
     static public function buildParams($params, $prefix = '', $separator = '&', $assignment = '=', $encode = 'rawurlencode')
     {
         $result = is_string($params) ? trim($params) : '';
-        
+
         if(is_array($params))
         {
             foreach($params as $key=>$value)
@@ -49,13 +49,13 @@ class SimpleString
                 }
             }
         }
-        
+
         return ($result ? $prefix : '').$result;
     }
-    
+
     /**
      * Wrap a non-empty value with a prefix and suffix.
-     * 
+     *
      * @param (string) The string to wrap.
      * @param (string) String prefix.
      * @param (string) String suffix.
@@ -74,10 +74,10 @@ class SimpleString
         }
         return '';
     }
-    
+
     /**
      * Prefix a non-empty value.
-     * 
+     *
      * @param (string) The string to prepend to.
      * @param (string) String prefix.
      * @param (bool) Duplicate prefix if already present.
@@ -88,10 +88,10 @@ class SimpleString
     {
         return self::wrap($value, $prefix, '', $dupe);
     }
-    
+
     /**
      * Suffix a non-empty value.
-     * 
+     *
      * @param (string) The string to append to.
      * @param (string) String suffix.
      * @param (bool) Duplicate suffix if already present.
@@ -102,10 +102,10 @@ class SimpleString
     {
         return self::wrap($value, '', $suffix, $dupe);
     }
-    
+
     /**
      * Trim and remove extraneous space (including tab and newline).
-     * 
+     *
      * @param (string) Any string.
      * @return (string) String with continuous chunks of whitespace reduced to a single space.
      * @static
@@ -114,10 +114,10 @@ class SimpleString
     {
         return preg_replace('/[\n\r\t ]+/', ' ', trim($str));
     }
-    
+
     /**
      * Escape HTML entities.
-     * 
+     *
      * @param (string) String to escape.
      * @param (bool) Double encode.
      * @return (string) Escaped string.
@@ -125,6 +125,27 @@ class SimpleString
     static public function escape($str, $double = false)
     {
         return htmlentities($str, ENT_QUOTES, 'utf-8', $double);
+    }
+
+    /**
+     * Parse XML into an associative array.
+     *
+     * @param (string) XML string to parse.
+     * @return (array) Parsed XML.
+     **/
+    static public function parseXml($xmlStr)
+    {
+        try {
+            $xml = simplexml_load_string($xmlStr, SimpleXMLElement::class, LIBXML_NOCDATA);
+
+            // convert to json and back to get an easier to deal with array
+            $json = json_encode($xml);
+            $data = json_decode($json, true);
+        } catch (Exception $e) {
+            $data = null;
+        }
+
+        return $data;
     }
 }
 
