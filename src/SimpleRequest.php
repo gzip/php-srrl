@@ -51,6 +51,7 @@ class SimpleRequest extends SimpleClass
 
     /**
      * @var array
+     * @see https://www.php.net/manual/en/function.curl-getinfo.php#refsect1-function.curl-getinfo-returnvalues
      */
     protected $debugDetails = array('url', 'content_type', 'http_code', 'total_time');
 
@@ -167,7 +168,7 @@ class SimpleRequest extends SimpleClass
         // increase timeouts for debug
         if(!$this->debug)
         {
-            $curlOptions[CURLOPT_CONNECTTIMEOUT] = 1;
+            $curlOptions[CURLOPT_CONNECTTIMEOUT] = $this->getOption('connectTimeout', 1);
             $curlOptions[CURLOPT_FAILONERROR] = true;
         }
         else
