@@ -302,7 +302,7 @@ class SimplePage extends SimpleClass
     protected function handleModuleCache($mod, $data = null)
     {
         // execute module if there's no data
-        $hasData = !is_null($data);
+        $hasData = !is_null($data) && $data !== false;
         $content = $hasData ? $mod->render($data) : null;
         $assets  = $hasData ? $mod->getAssets() : null;
 
