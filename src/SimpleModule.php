@@ -5,6 +5,11 @@ Copyrights licensed under the MIT License. See the accompanying LICENSE file for
 class SimpleModule extends SimpleClass
 {
     /**
+     * @var str
+     */
+    protected $name = '';
+
+    /**
      * @var object
      */
     protected $page = null;
@@ -36,7 +41,7 @@ class SimpleModule extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable('page');
+        $this->addSettable(array('page', 'name'));
         $this->addGettable(array('data', 'setKeys', 'final'));
     }
 

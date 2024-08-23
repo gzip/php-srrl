@@ -211,7 +211,7 @@ class SimplePage extends SimpleClass
         $className = SimpleUtil::getValue($config, 'class', $name);
         $params = SimpleUtil::getValue($config, 'params', array());
 
-        $mod = new $className(array_merge($params, array('page'=>$this)));
+        $mod = new $className(array_merge($params, array('page'=>$this, 'name'=>$name)));
 
         if(is_a($mod, 'SimpleModule'))
         {
