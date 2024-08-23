@@ -70,7 +70,7 @@ class SimpleFiles
     {
         if(is_dir($dir))
         {
-            if(!is_null($restrict) && strpos(realpath($dir), $restrict) !== 0){
+            if(!is_null($restrict) && strpos(realpath($dir), realpath($restrict)) !== 0){
                 SimpleUtil::log("$dir is not located under $restrict.");
                 return false;
             }
