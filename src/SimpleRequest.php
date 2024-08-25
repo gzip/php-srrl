@@ -137,17 +137,66 @@ class SimpleRequest extends SimpleClass
         $this->setOptions($options);
 
         // store parse flag for access in multiQuery
-        $this->parse = $this->getOption('parseResponse');
+        $this->parse = $this->getOption('parseResponse', true);
 
+        // get passed curl options
+        $curlOptions = $this->getOption('curlOptions', array());
+
+        // set default curl options
+        $defaultOptions = array(
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_FAILONERROR => true
+        );
+
+        foreach ($defaultOptions as $constant => $value)
+        {
+            if (!isset($curlOptions[$constant])) {
+                $curlOptions[$constant] = $value;
+            }
+        }
+
+        // set various optionals
+        $supportedOptions = array(
+            'followLocation' => CURLOPT_FOLLOWLOCATION,
+            'autoReferer'    => CURLOPT_AUTOREFERER,
+            'failOnError'    => CURLOPT_FAILONERROR
+        );
+
+        foreach ($supportedOptions as $name => $constant)
+        {
+            if (isset($options[$name])) {
+                $curlOptions[$constant] = $options[$name];
+            }
+        }
+
+        // ssl
+        $verifySsl = $this->getOption('verifySsl', null);
+        if ($verifySsl !== null) {
+            $curlOptions[CURLOPT_SSL_VERIFYHOST] = $verifySsl;
+            $curlOptions[CURLOPT_SSL_VERIFYPEER] = $verifySsl;
+        }
+
+        // TODO add a test for convoluted header merging:
+        // priority goes options > curlOptions[CURLOPT_HTTPHEADER] > options[headers] (the preferred way of passing)
         $headers = array();
 
-        // handle keep alive headers is presentt
+        // handle keep alive headers if present
         $ka = $this->getOption('keepAlive');
         if($ka && is_int($ka))
         {
-            $headers[] = 'Connection: keep-alive';
-            $headers[] = 'Keep-Alive: '.$ka;
+            $headers['Connection'] = 'keep-alive';
+            $headers['Keep-Alive'] = $ka;
         }
+
+        // parse headers passed in curlOptions
+        $optHeaders = SimpleUtil::getValue($curlOptions, CURLOPT_HTTPHEADER, array());
+        foreach($optHeaders as $header) {
+            $parts = explode(':', $header);
+            $headers[trim($parts[0])] = trim($parts[1]);
+        }
+
+        // merge headers passed in options
+        $headers = array_merge($headers, $this->getOption('headers', array()));
 
         // tack on any matrix params
         $path .= $this->buildMatrixParams($this->getOption('matrixParams'));
@@ -156,43 +205,46 @@ class SimpleRequest extends SimpleClass
         $path .= $this->buildQueryParams($this->getOption('queryParams'), $path);
 
         // set curl options
-        $curlOptions = array();
+        $defaultCurlOptions = array();
 
         // handle put or post data
         if(isset($options['putData']))
         {
-            $curlOptions[CURLOPT_CUSTOMREQUEST] = 'PUT';
-            $curlOptions[CURLOPT_POSTFIELDS] = $this->buildQueryParams($options['putData']);
+            $defaultCurlOptions[CURLOPT_CUSTOMREQUEST] = 'PUT';
+            $defaultCurlOptions[CURLOPT_POSTFIELDS] = $this->buildQueryParams($options['putData']);
         }
         else if(isset($options['postData']))
         {
-            $curlOptions[CURLOPT_POST] = 1;
-            $curlOptions[CURLOPT_POSTFIELDS] = $this->buildQueryParams($options['postData']);
+            $defaultCurlOptions[CURLOPT_POST] = 1;
+            $defaultCurlOptions[CURLOPT_POSTFIELDS] = $this->buildQueryParams($options['postData']);
         }
 
         // increase timeouts for debug
-        if(!$this->debug)
+        if($this->debug)
         {
-            $curlOptions[CURLOPT_CONNECTTIMEOUT] = $this->getOption('connectTimeout', 1);
-            $curlOptions[CURLOPT_FAILONERROR] = true;
+            $defaultCurlOptions[CURLOPT_TIMEOUT] = 10;
+            $defaultCurlOptions[CURLOPT_CONNECTTIMEOUT_MS] = 5000;
         }
         else
         {
-            $curlOptions[CURLOPT_TIMEOUT] = 10;
-            $curlOptions[CURLOPT_CONNECTTIMEOUT] = 5;
+            $timeout = $this->getOption('connectTimeout', 1000);
+
+            // assume a value less than ten means seconds
+            if ($timeout < 10) {
+                $timeout .= 1000;
+            }
+
+            $defaultCurlOptions[CURLOPT_CONNECTTIMEOUT_MS] = $timeout;
+            $defaultCurlOptions[CURLOPT_FAILONERROR] = true;
         }
 
-        $curlOptions[CURLOPT_RETURNTRANSFER] = true;
+        $defaultCurlOptions[CURLOPT_RETURNTRANSFER] = true;
 
-        // append any custom curl options, overriding any previous values
-        $additionalOptions = $this->getOption('curlOptions');
-        if(is_array($additionalOptions))
-        {
-            $curlOptions = $this->mergeOptions($curlOptions, $additionalOptions);
-        }
+        // merge default and passed curl options
+        $curlOptions = self::mergeOptions($defaultCurlOptions, $curlOptions);
 
-        // add headers
-        $curlOptions[CURLOPT_HTTPHEADER] = $headers;
+        // add final headers
+        $curlOptions[CURLOPT_HTTPHEADER] = $this->buildHeaders($headers);
 
         // create handle and set options
         $url = $this->getBase() . $path;
@@ -278,7 +330,7 @@ class SimpleRequest extends SimpleClass
         $result = curl_exec($this->handle);
 
         // optionally parse the response further
-        if($this->getOption('parseResponse'))
+        if($this->getOption('parseResponse', true))
         {
             $result = $this->parseResponse($result);
         }
@@ -422,6 +474,18 @@ class SimpleRequest extends SimpleClass
     }
 
     /**
+     * Build header values from an array.
+     *
+     * @param array Associative array of header valus.
+     * @return string Parameter string.
+    **/
+    public function buildHeaders($assocArr)
+    {
+        $singleString = SimpleString::buildParams($assocArr, '', "\n", ': ', null);
+        return explode("\n", $singleString);
+    }
+
+    /**
      * Do further parsing on the response before returning.
      *
      * @param string Result of query.
@@ -462,17 +526,27 @@ class SimpleRequest extends SimpleClass
      * @param array Second array.
      * @return array New array or false on error.
     **/
-    protected function mergeOptions($a,$b)
+    static protected function mergeOptions($to, $from)
     {
-        if(!is_array($a) || !is_array($b)){
-            return false;
+        if(!is_array($to)){
+            $to = array();
         }
 
-        foreach($b as $key=>$value){
-            $a[$key] = $value;
+        if(!is_array($from)){
+            return $to;
         }
 
-        return $a;
+        // note that we can't use array_merge_recursive because it clobbers indices
+        foreach($from as $key=>$value)
+        {
+            if (isset($to[$key]) && is_array($to[$key]) && is_array($value)) {
+                $to = mergeOptions($to[$key], $value);
+            } else {
+                $to[$key] = $value;
+            }
+        }
+
+        return $to;
     }
 
     /**
