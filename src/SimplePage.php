@@ -104,32 +104,7 @@ class SimplePage extends SimpleClass
                 $result = $this->handleModule($name);
             break;
             case 'fetch':
-                // TODO: move into separate method
-                $indices = $this->nameIndex[$name];
-                foreach($indices as $i)
-                {
-                    $res = SimpleUtil::getValue($this->results, $i);
-                    if($res)
-                    {
-                        // fetch phase will continue until all requests are final
-                        if(isset($res['request']) && false === $res['module']->isFinal())
-                        {
-                            $result = $this->handleModuleData(
-                                $name,
-                                $res['module'],
-                                SimpleUtil::getValue($res, 'response', '')
-                            );
-                        }
-                        else
-                        {
-                            list($result, $assets) = $this->handleModuleCache(
-                                $res['module'],
-                                SimpleUtil::getValue($res, 'response', '')
-                            );
-                            $this->addAssets($assets);
-                        }
-                    }
-                }
+                $result = $this->handleModuleResult($name);
             break;
             case 'finalize':
                 if('assets' === $name)
@@ -154,6 +129,42 @@ class SimplePage extends SimpleClass
     }
 
     /**
+     * Process module results.
+     *
+     * @return mixed Results
+     **/
+    protected function handleModuleResult($name)
+    {
+        $result = null;
+        $indices = SimpleUtil::getValue($this->nameIndex, $name, array());
+        foreach($indices as $i)
+        {
+            $res = SimpleUtil::getValue($this->results, $i);
+            if($res)
+            {
+                // fetch phase will continue until all requests are final
+                if(isset($res['request']) && false === $res['module']->isFinal())
+                {
+                    $result = $this->handleModuleData(
+                        $name,
+                        $res['module'],
+                        SimpleUtil::getValue($res, 'response', '')
+                    );
+                }
+                else
+                {
+                    list($result, $assets) = $this->handleModuleCache(
+                        $res['module'],
+                        SimpleUtil::getValue($res, 'response', '')
+                    );
+                    $this->addAssets($assets);
+                }
+            }
+        }
+        return $result;
+    }
+
+    /**
      * Setup.
      *
      * @param bool False for failure.
@@ -169,6 +180,31 @@ class SimplePage extends SimpleClass
         }
 
         $this->assets = $this->getAssets();
+    }
+
+    /**
+     * Execute a single module and return the result.
+     *
+     * @param bool False for failure.
+    **/
+    public function executeModules()
+    {
+        foreach ($this->modules as $name => $mod)
+        {
+            $this->verifyModule($name);
+            $this->handleModule($name);
+        }
+
+        $this->fetchAll();
+
+        $results = array();
+        foreach ($this->modules as $name => $mod)
+        {
+            $results[$name] = $this->handleModuleResult($name);
+        }
+
+        //$this->log($results);
+        return $results;
     }
 
     /**
