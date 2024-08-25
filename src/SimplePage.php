@@ -163,6 +163,11 @@ class SimplePage extends SimpleClass
         if(!$this->moduleRoot){
             $this->moduleRoot = $_SERVER['DOCUMENT_ROOT'].'/modules';
         }
+
+        if(!is_array($this->moduleRoot)){
+            $this->moduleRoot = array($this->moduleRoot);
+        }
+
         $this->assets = $this->getAssets();
     }
 
@@ -178,8 +183,9 @@ class SimplePage extends SimpleClass
         $className = SimpleUtil::getValue($config, 'class', $name);
 
         $fileFound = false;
-        foreach ($this->moduleRoot as $root)
+        foreach ($this->moduleRoot as &$root)
         {
+            $root = realpath($root);
             $modulePath = $root.'/'.$className.'.php';
             if (is_file($modulePath)) {
                 include_once $modulePath;
@@ -193,7 +199,7 @@ class SimplePage extends SimpleClass
         } else if (!$fileFound) {
             $this->log('Module file '.$className.'.php not found in path(s) '.implode(', ', $this->moduleRoot));
         } else {
-            $this->log('Class '.$className. ' not found.');
+            $this->log('Class '.$className. ' not found in path(s) '.implode(', ', $this->moduleRoot));
         }
 
         return $result;
@@ -506,7 +512,8 @@ class SimplePage extends SimpleClass
     **/
     protected function resolveTemplate($template)
     {
-        if(preg_match('/^[0-9a-zA-Z_\.\-\/\:]+$/', $template) && Is_file($template)){
+        $template = realpath($template);
+        if(is_file($template)){
             $template = file_get_contents($template);
         }
         return $template;
