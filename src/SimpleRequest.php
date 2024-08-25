@@ -51,9 +51,14 @@ class SimpleRequest extends SimpleClass
 
     /**
      * @var array
+     */
+    protected $constants = array('options'=>array(), 'errors'=>array(), 'multi'=>array());
+
+    /**
+     * @var array
      * @see https://www.php.net/manual/en/function.curl-getinfo.php#refsect1-function.curl-getinfo-returnvalues
      */
-    protected $debugDetails = array('url', 'content_type', 'http_code', 'total_time');
+    protected $debugDetails = array('url', 'content_type', 'http_code', 'connect_time', 'total_time', 'speed_download', 'download_content_length');
 
     /**
      * Called by SimpleClass::__construct prior to setParams.
@@ -194,11 +199,25 @@ class SimpleRequest extends SimpleClass
         $curlHandle = curl_init($url);
         curl_setopt_array($curlHandle, $curlOptions);
 
-        // Start log if debug is enabled
+        // save additional log info if debug is enabled
         if($this->debug)
         {
-            if(!empty($headers)){
-                $this->logger['headers'] = print_r($headers, 1);
+            if(!empty($curlOptions))
+            {
+                $resolvedOptions = array();
+                $optionConstants = $this->getCurlConstants('options');
+
+                foreach($curlOptions as $constant=>$value)
+                {
+                    if (isset($optionConstants[$constant])) {
+                        $resolvedOptions[$optionConstants[$constant]] =
+                            is_bool($value) ? ($value ? 'true' : 'false') : $value;
+                    } else {
+                        $this->log("$constant=>$value");
+                    }
+                }
+
+                $this->logger['curl_options'] = print_r($resolvedOptions, 1);
             }
         }
 
@@ -457,6 +476,32 @@ class SimpleRequest extends SimpleClass
     }
 
     /**
+     * Get an associative array of grouped curl constants.
+     *
+     * @return array
+    **/
+    public function getCurlConstants($group = null)
+    {
+        $curlConstants = SimpleUtil::getValue(get_defined_constants(true), 'curl');
+        foreach($curlConstants as $name=>$constant)
+        {
+            if (strpos($name, 'CURLOPT_') === 0) {
+                $this->constants['options'][$constant] = $name;
+            } else if (strpos($name, 'CURLE_') === 0) {
+                $this->constants['errors'][$constant] = $name;
+            } else if (strpos($name, 'CURLM_') === 0) {
+                $this->constants['multi'][$constant] = $name;
+            }
+        }
+
+        //ksort($curlConstants);
+        //$this->log($curlConstants);
+        //$this->log($this->constants);
+
+        return empty($group) ? $this->constants : $this->constants[$group];
+    }
+
+    /**
      * Log results if present.
      *
      * @return void
@@ -477,12 +522,14 @@ class SimpleRequest extends SimpleClass
             // add curl error if present
             $err = curl_errno($this->handle);
             if($err){
-                $info['curl_error'] = $err;
+                $info['curl_error'] = $this_constants['errors'][$err];
             }
+
+            // tack on info from logger
+            $info['curl_options'] = $this->logger['curl_options'];
 
             // log it
             $this->log(SimpleString::buildParams($info, "\n  ", "\n  ", ': ', null));
         }
     }
 }
-
