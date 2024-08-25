@@ -340,6 +340,20 @@ class SimpleHttp extends SimpleClass
     }
 
     /**
+     * Return CORS preflight headers.
+     *
+     * @param string Origin domain.
+     * @return string Acceptable HTTP methods, comma separated.
+     **/
+    static public function corsPreflight($origin = '*', $methods = 'GET')
+    {
+        self::success(204);
+        self::sendHeader('Connection', 'keep-alive');
+        self::sendHeader('Access-Control-Allow-Origin', $origin);
+        self::sendHeader('Access-Control-Allow-Methods', $methods);
+    }
+
+    /**
      * Normalize content type to a more friendly format.
      *
      * @param string Content type.
