@@ -153,7 +153,7 @@ class SimpleFiles
 
     static function addSlash($path)
     {
-        return substr($path, -1) === '/' ? $path : $path.'/';
+        return substr($path, -1) === DIRECTORY_SEPARATOR ? $path : $path.DIRECTORY_SEPARATOR;
     }
 }
 
