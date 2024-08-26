@@ -30,9 +30,19 @@ class SimpleModule extends SimpleClass
     protected $cacheObject = null;
 
     /**
-     * @var object
+     * @var string
      */
-    public $html = null;
+    protected $cacheKey = '';
+
+    /**
+     * @var string
+     */
+    protected $cacheDir = '';
+
+     /**
+      * @var object
+      */
+     public $html = null;
 
     /**
      * Called by SimpleClass::__construct prior to setParams.
@@ -41,7 +51,7 @@ class SimpleModule extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('page', 'name'));
+        $this->addSettable(array('page', 'name', 'cacheKey', 'cacheDir'));
         $this->addGettable(array('data', 'setKeys', 'final'));
     }
 
@@ -77,6 +87,9 @@ class SimpleModule extends SimpleClass
     **/
     protected function initCacheObject()
     {
+        if (!empty($this->cacheDir) && !empty($this->cacheKey)) {
+            return new SimpleCache($this->cacheKey, array('prefix'=>$this->cacheDir));
+        }
         return null;
     }
 
