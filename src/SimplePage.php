@@ -203,7 +203,6 @@ class SimplePage extends SimpleClass
             $results[$name] = $this->handleModuleResult($name);
         }
 
-        //$this->log($results);
         return $results;
     }
 
@@ -257,12 +256,7 @@ class SimplePage extends SimpleClass
 
         if(is_a($mod, 'SimpleModule'))
         {
-            $result = $mod->setup();
-            if(false !== $result){
-                $result = $this->handleModuleData($name, $mod);
-            } else {
-                $this->log('Class '.$className. ' failed to setup.');
-            }
+            $result = $this->handleModuleData($name, $mod);
         } else {
             $this->log('Class '.$className. ' is not derived from SimpleModule, skipping.');
         }
