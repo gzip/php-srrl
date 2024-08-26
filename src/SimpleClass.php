@@ -416,10 +416,14 @@ class SimpleClass
                 SimpleUtil::log($msg);
                 $msg = '';
             }
-            $stack = array_reverse(array_slice(debug_backtrace(), 1));
+
+            // default arg is DEBUG_BACKTRACE_PROVIDE_OBJECT
+            // can also pass DEBUG_BACKTRACE_IGNORE_ARGS
+            $stack = array_slice(debug_backtrace(), 1);
             foreach($stack as $details)
             {
-                $msg .= "\n".$details['class'].$details['type'].$details['function'].'();'.(@$details['line'] ? ' on line '.$details['line'] : '');
+                $msg .= "\n  (".get_class($details['object']).') '.$details['class'].$details['type'].$details['function'].'();'.
+                    (isset($details['line']) ? ' called from line '.$details['line'].' of '.basename($details['file']) : '') ;
             }
         }
 
