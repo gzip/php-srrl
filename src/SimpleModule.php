@@ -39,11 +39,6 @@ class SimpleModule extends SimpleClass
      */
     protected $cacheDir = '';
 
-     /**
-      * @var object
-      */
-     public $html = null;
-
     /**
      * Called by SimpleClass::__construct prior to setParams.
      *
@@ -62,7 +57,6 @@ class SimpleModule extends SimpleClass
     **/
     public function setup()
     {
-        $this->html = new SimpleMarkup;
         return true;
     }
 
