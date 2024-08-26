@@ -22,19 +22,41 @@ class SimpleRouter extends SimpleClass
     public function setupParams()
     {
         $this->addPushable('routes');
-        $this->addSetter('routes', 'setRoute');
+        $this->addSetter('routes', 'setRoutes');
     }
 
-    protected function setRoute($route)
+    protected function setRoutes($routes)
     {
-        return is_array($route) && isset($route['route']) ? $route : null;
+        if (!is_array($routes)) {
+            $this->log('Expected routes to be an array: '.print_r($routes,1));
+            return null;
+        }
+
+        // handle an array of routes
+        if(array_key_exists(0, $routes)) {
+            foreach($routes as $r=>$route) {
+                if ($this->verifyRoute($route) === null) {
+                    return null;
+                }
+            }
+        // or a single route from pushRoute/addRoute
+        } else {
+            return $this->verifyRoute($routes);
+        }
+
+        return $routes;
     }
 
-    public function addRoute($route)
+    public function verifyRoute($route)
     {
         $this->setOptions($route);
         $routeVal = $this->getOption('route');
         $type = $this->getOption('type', 'static');
+
+        if (empty($routeVal)) {
+            $this->log("Ignoring invalid route - expected 'route' key in: ".print_r($route,1));
+            return null;
+        }
 
         // handle /:foo/:bar syntax
         if($type === 'static' && strpos($routeVal, ':'))
@@ -55,17 +77,7 @@ class SimpleRouter extends SimpleClass
             }
         }
 
-        $this->pushRoute($route);
-    }
-
-    public function addRoutes($routes)
-    {
-        if(is_array($routes))
-        {
-            foreach($routes as $route){
-                $this->addRoute($route);
-            }
-        }
+        return $route;
     }
 
     public function route($path = null)
@@ -186,4 +198,3 @@ class SimpleRouter extends SimpleClass
         return parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
     }
 }
-
