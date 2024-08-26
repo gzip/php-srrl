@@ -22,7 +22,7 @@ class SimplePage extends SimpleClass
     /**
      * @var string
      */
-    protected $subtemplates = '';
+    protected $subtemplates = array();
 
     /**
      * @var string
@@ -124,8 +124,9 @@ class SimplePage extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('meta', 'template'));
-        $this->addPushable(array('subtemplates', 'moduleRoot', 'modules', 'keys'));
+        $this->addSettable(array('meta', 'template', 'keys'));
+        $this->addPushable(array('subtemplates', 'moduleRoot', 'modules'));
+        $this->addSetter('moduleRoot', 'setDirectoryPath');
     }
 
     /**
@@ -172,11 +173,7 @@ class SimplePage extends SimpleClass
     public function setup()
     {
         if(!$this->moduleRoot){
-            $this->moduleRoot = $_SERVER['DOCUMENT_ROOT'].'/modules';
-        }
-
-        if(!is_array($this->moduleRoot)){
-            $this->moduleRoot = array($this->moduleRoot);
+            $this->setModuleRoot($_SERVER['DOCUMENT_ROOT'].'/modules');
         }
 
         $this->assets = $this->getAssets();
@@ -191,8 +188,9 @@ class SimplePage extends SimpleClass
     {
         foreach ($this->modules as $name => $mod)
         {
-            $this->verifyModule($name);
-            $this->handleModule($name);
+            if($this->verifyModule($name)) {
+                $this->handleModule($name);
+            }
         }
 
         $this->fetchAll();
@@ -218,23 +216,22 @@ class SimplePage extends SimpleClass
         $className = SimpleUtil::getValue($config, 'class', $name);
 
         $fileFound = false;
-        foreach ($this->moduleRoot as &$root)
+        foreach ($this->moduleRoot as $root)
         {
-            $root = realpath($root);
             $modulePath = $root.'/'.$className.'.php';
             if (is_file($modulePath)) {
                 include_once $modulePath;
-                $fileFound = true;
+                $fileFound = $modulePath;
                 break;
             }
         }
 
         if(class_exists($className)){
             $result = true;
-        } else if (!$fileFound) {
+        } else if ($fileFound === false) {
             $this->log('Module file '.$className.'.php not found in path(s) '.implode(', ', $this->moduleRoot));
         } else {
-            $this->log('Class '.$className. ' not found in path(s) '.implode(', ', $this->moduleRoot));
+            $this->log('Class '.$className. ' not found in path '.$fileFound);
         }
 
         return $result;
