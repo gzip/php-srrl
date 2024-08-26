@@ -27,7 +27,7 @@ class SimpleClass
     /**
      * @var array
      */
-    protected $pushable = array('gettable', 'pushable', 'settable', 'setters');
+    protected $pushable = array('gettable', 'pushable', 'settable');
 
     /**
      * @var array
@@ -47,8 +47,10 @@ class SimpleClass
     public function __construct($params = array())
     {
         // seed setters
-        $this->setters['setters'] = $this->setSetter('setSetter');
+        $this->addSetter('gettable', 'setStringOrArray');
+        $this->addSetter('settable', 'setStringOrArray');
         $this->addSetter('pushable', 'setStringOrArray');
+        $this->addSetter('backtrace', 'setBool');
 
         $this->setupParams();
         $this->setParams($params);
@@ -66,7 +68,6 @@ class SimpleClass
     {
         $result = null;
         list($param, $action) = $this->parseAction($method);
-        //error_log("$action $param");
         switch($action)
         {
             case 'has':
@@ -79,6 +80,9 @@ class SimpleClass
                 {
                     $result = $this->set($param, $action == 'enable' ? true : false);
                 }
+                else {
+                    $this->log("Ignoring enable/disable for parameter $param which is not a boolean.");
+                }
             break;
             case 'get':
                 $result = $this->get($param);
@@ -90,8 +94,7 @@ class SimpleClass
             case 'add':
             case 'push':
                 $value = array_shift($args);
-                $key = array_shift($args); // key as optional second arg
-                $result = $this->push($param, $value, isset($key) ? $key : null);
+                $result = $this->push($param, $value);
             break;
             default:
                 $result = $this->handleCallDefault($method, $args);
@@ -117,7 +120,7 @@ class SimpleClass
     }
 
     /**
-     * Setup.
+     * Setup is called automatically in the constructor after setupParams.
     **/
     public function setup()
     {
@@ -149,7 +152,7 @@ class SimpleClass
     **/
     public function get($name)
     {
-        return $this->isGettable($name) ? $this->{$name} : null;
+        return $this->isGettable($name) && property_exists($this, $name) ? $this->{$name} : null;
     }
 
     /**
@@ -159,15 +162,21 @@ class SimpleClass
     **/
     public function set($name, $value)
     {
-        $result = null;
-        $value = $this->verifyParameterValue($name, $value);
-        if(!is_null($value))
+        if($this->isPushable($name) && !is_array($value))
         {
-            $this->{$name} = $value;
-            $result = $value;
-        } else {
-            $this->log("Property '$name' is not settable.");
+            return $this->push($name, $value);
         }
+
+        $result = null;
+        $val = $this->verifyParameterValue($name, $value);
+        if(!is_null($val))
+        {
+            $this->{$name} = $val;
+            $result = $val;
+        } else {
+            $this->log("Ignoring invalid value for $name: ".(is_object($value) ? get_class($value) : print_r($value, 1)));
+        }
+
         return $result;
     }
 
@@ -176,21 +185,20 @@ class SimpleClass
      *
      * @param string Property name.
     **/
-    protected function push($name, $value, $key)
+    protected function push($name, $value)
     {
         $result = null;
-        $name = isset($this->{$name.'s'}) ? $name.'s' : $name;
+        if (!isset($this->{$name}) && isset($this->{$name.'s'})) {
+            //$this->info("Converting non-existant $name to {$name}s");
+            $name = $name.'s';
+        }
+
         if($this->isPushable($name))
         {
-            if(!is_array($value) || !isset($value[0]))
+            // test for non-arrays and naively for associative arrays
+            if(!is_array($value) || !array_key_exists(0, $value))
             {
                 $value = array($value);
-            }
-
-            if($key && count($value) > 1)
-            {
-                $key = null;
-                $this->log("Pushing to property '$name' but discarding key '$key' passed with array value.");
             }
 
             foreach($value as $k=>$v)
@@ -198,15 +206,11 @@ class SimpleClass
                 $result = $this->verifyParameterValue($name, $v);
                 if(!is_null($result))
                 {
-                    if(is_null($key))
-                    {
-                        $k = is_int($k) ? count($this->{$name}) : $k;
-                    }
-                    $this->{$name}[$k] = $result;
+                    $this->{$name}[] = $result;
                 }
                 else
                 {
-                    $this->log("Ignoring invalid value pushed to property '$name'.");
+                    $this->log("Ignoring invalid value pushed to property '$name': ".print_r($value, 1));
                 }
             }
         }
@@ -221,18 +225,34 @@ class SimpleClass
     /**
      * Verify a parameter against it's setter. The setter should return null for failure.
      *
-     * @param mixed Property name.
+     * @param string Property name.
     **/
-    protected function verifyParameterValue($param, $value)
+    protected function verifyParameterValue($name, $value)
     {
-        if($this->isSettable($param))
+        if($this->isSettable($name))
         {
-            if(isset($this->setters[$param])){
-                $value = call_user_func($this->resolveCallable($this->setters[$param]), $value, $param);
+            if(isset($this->setters[$name])){
+                // check if we should iterate through an array of values
+                if($this->isPushable($name) && is_array($value) && array_key_exists(0, $value))
+                {
+                    foreach ($value as $key=>$val)
+                    {
+                        $val = call_user_func($this->setters[$name], $val, $name);
+                        if (is_null($val)) {
+                            unset($value[$key]);
+                            $this->log("Ignoring invalid value in {$name}[{$key}]: ".print_r($val, 1));
+                        } else {
+                            $value[$key] = $val;
+                        }
+                    }
+                } else {
+                    $value = call_user_func($this->setters[$name], $value, $name);
+                }
             }
         } else {
             $value = null;
         }
+
         return $value;
     }
 
@@ -243,7 +263,7 @@ class SimpleClass
     **/
     protected function isPushable($name)
     {
-        return in_array($name, $this->pushable);
+        return in_array($name, $this->pushable) && property_exists($this, $name) && is_array($this->{$name});
     }
 
     /**
@@ -269,10 +289,16 @@ class SimpleClass
     /**
      * Setter for setters.
     **/
-    protected function setSetter($setter)
+    protected function addSetter($name, $func)
     {
-        $result = $this->resolveCallable($setter);
-        return empty($result) ? null : $result;
+        $result = $this->resolveCallable($func);
+        if(is_string($name) && !empty($name) && !empty($result)) {
+            $this->setters[$name] = $result;
+            return true;
+        } else {
+            $this->log("Ignoring unresolvable setter function for $name.");
+            return null;
+        }
     }
 
     /**
@@ -350,6 +376,16 @@ class SimpleClass
     }
 
     /**
+     * Setter for directory paths.
+     *
+     * @param string Directory.
+    **/
+    protected function setDirectoryPath($dir)
+    {
+        return is_dir($dir) ? realpath($dir) : null;
+    }
+
+    /**
      * Convenience wrapper around SimpleUtil::getValue() for $this->options.
      * Meant to be used within methods which accept an array of arguments.
      *
@@ -422,7 +458,9 @@ class SimpleClass
             $stack = array_slice(debug_backtrace(), 1);
             foreach($stack as $details)
             {
-                $msg .= "\n  (".get_class($details['object']).') '.$details['class'].$details['type'].$details['function'].'();'.
+                $object = SimpleUtil::getValue($details, 'object');
+                $msg .= "\n  ".($object ? '('.get_class($object).') ' : '').
+                    $details['class'].$details['type'].$details['function'].'();'.
                     (isset($details['line']) ? ' called from line '.$details['line'].' of '.basename($details['file']) : '') ;
             }
         }
