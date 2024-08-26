@@ -6,13 +6,13 @@ require_once 'SimpleFiles.php';
 
 /** A general cache which uses the filesystem, APC, or Memcache.
     Example usage:
-     
+
     $cache = new SimpleCache('uniqueName');
-    
+
     // store values directly
     $cache->putVar('myVar', 'some value');
     print $cache->getVar('myVar');
-    
+
     // or use start/end to wrap output
     if($cached = $cache->get()){
         print $cached;
@@ -21,8 +21,8 @@ require_once 'SimpleFiles.php';
         // print some content
         $cache->end();
     }
-    
-    NOTE: Only file has been tested. Apc and Memcache are more than likely buggy. 
+
+    NOTE: Only file has been tested. Apc and Memcache are more than likely buggy.
   **/
 
 class SimpleCache
@@ -35,14 +35,14 @@ class SimpleCache
     protected $config  = array();
     protected $ttl      = 0;
     public    $memcache = null;
-    
+
     public function __construct($name, $config = array())
     {
         $this->setName($name);
         $this->type = is_array($config) && isset($config['type']) ? $config['type'] : 'file';
         switch($this->type){
             case 'file':
-                return $this->initFileCache($config);
+                $this->initFileCache($config);
             break;
             case 'memcache':
                 $this->initMemCache($config);
@@ -57,37 +57,37 @@ class SimpleCache
                 return false;
         }
     }
-    
+
     public function setName($name)
     {
         $this->name = $name;
     }
-    
+
     protected function getName($name = '')
     {
         return $this->config['prefix'].($name ? $name : $this->name).'.simple_cache';
     }
-    
+
     public function put($contents)
     {
         return $this->putCache($this->getName(), $contents);
     }
-    
+
     public function putVar($name, $value = '')
     {
         return $this->putCache($this->getName($name), $value);
     }
-    
+
     public function get()
     {
         return $this->getCache($this->getName());
     }
-    
+
     public function getVar($name)
     {
         return $this->getCache($this->getName($name));
     }
-    
+
     public function start()
     {
         if($this->enabled){
@@ -96,7 +96,7 @@ class SimpleCache
         }
         return false;
     }
-    
+
     public function end()
     {
         if($this->enabled){
@@ -106,14 +106,14 @@ class SimpleCache
         }
         return false;
     }
-    
+
     public function clear()
     {
         // if grouped clear entire group
         if(@$this->config['group']){
             return $this->clearGroup();
         }
-        
+
         if($this->enabled){
             $name = $this->getName();
             switch($this->type){
@@ -131,7 +131,7 @@ class SimpleCache
             }
         }
     }
-    
+
     public function clearGroup()
     {
         if(!@$this->config['group'])
@@ -151,8 +151,8 @@ class SimpleCache
             }
         }
     }
-    
-    
+
+
     protected function clearCacheGroup($group)
     {
         if(is_dir($group))
@@ -171,7 +171,7 @@ class SimpleCache
         }
         //return @rmdir($group);
     }
-    
+
     public function setGroup($group)
     {
         if(!is_string($group) || empty($group)){
@@ -202,21 +202,22 @@ class SimpleCache
             }
         }
     }
-    
+
     public function setClearKey($name)
     {
         $this->clearKey = $name;
     }
-    
+
     protected function isClearForced()
     {
-        return $this->clearKey ? isset($_GET[$this->clearKey]) : false;    
+        return $this->clearKey ? isset($_GET[$this->clearKey]) : false;
     }
-    
+
     protected function putCache($name, $contents)
     {
         if(!is_string($name)){
             return false;
+            $this->log('putCache failed - expected a string in \$name.');
         }
         $status = false;
         if($this->enabled)
@@ -244,10 +245,11 @@ class SimpleCache
         }
         return $status;
     }
-    
+
     protected function getCache($name)
     {
         if(!is_string($name)){
+            $this->log('getCache failed - expected a string in \$name.');
             return false;
         }
         $value = false;
@@ -262,7 +264,7 @@ class SimpleCache
                         $mtime = filemtime($name);
                         $valid = $mtime && time() - $stat['mtime'] > $this->ttl;
                     }
-                    $value = $valid ? @file_get_contents($name) : false;
+                    $value = $valid && is_file($name) ? file_get_contents($name) : false;
                 break;
                 case 'memcache':
                     $value = $this->memcached->get($name, $this->config['compress']);
@@ -274,7 +276,7 @@ class SimpleCache
         }
         return $value ? unserialize($value) : false;
     }
-    
+
     protected function initMemCache($config)
     {
         $defaultConfig = array('host'=>'127.0.0.1','port'=>11211, 'compress'=>0);
@@ -283,13 +285,13 @@ class SimpleCache
         } else {
             $this->config = $defaultConfig;
         }
-        
+
         if(is_null($this->memcache)){
             $this->memcache = new Memcache;
             $this->memcache->connect($this->config['host'], $this->config['port']);
         }
     }
-    
+
     protected function initFileCache($config)
     {
         $dir = '';
@@ -298,7 +300,7 @@ class SimpleCache
         } else if(is_array($config)){
             $dir = isset($config['prefix']) ? $config['prefix'] : '/tmp/';
         }
-        
+
         if($dir && SimpleFiles::checkDir($dir, true, $_SERVER['DOCUMENT_ROOT'])){
             $this->config['prefix'] = SimpleFiles::addSlash(realpath($dir));
             return true;
@@ -307,7 +309,7 @@ class SimpleCache
             return false;
         }
     }
-    
+
     protected function log($str)
     {
         error_log('SimpleCache: '.$str);
