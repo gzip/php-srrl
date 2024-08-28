@@ -22,22 +22,22 @@ class SimpleClass
     /**
      * @var array
      */
-    protected $settable = array('debug', 'backtrace');
+    private $settable = array('debug', 'backtrace');
 
     /**
      * @var array
      */
-    protected $pushable = array('gettable', 'pushable', 'settable');
+    private $pushable = array('gettable', 'pushable', 'settable');
 
     /**
      * @var array
      */
-    protected $setters = array();
+    private $setters = array();
 
     /**
      * @var array
      */
-    protected $gettable = array();
+    private $gettable = array();
 
     /**
      * Constructor.
@@ -50,7 +50,7 @@ class SimpleClass
         $this->addSetter('gettable', 'setStringOrArray');
         $this->addSetter('settable', 'setStringOrArray');
         $this->addSetter('pushable', 'setStringOrArray');
-        $this->addSetter('backtrace', 'setBool');
+        $this->addSetter('backtrace', 'setBoolean');
 
         $this->setupParams();
         $this->setParams($params);
@@ -124,6 +124,7 @@ class SimpleClass
     **/
     public function setup()
     {
+        return true;
     }
 
     /**
@@ -131,6 +132,7 @@ class SimpleClass
     **/
     public function setupParams()
     {
+        return true;
     }
 
     /**
@@ -141,7 +143,7 @@ class SimpleClass
     **/
     protected function handleCallDefault($method, $args)
     {
-        error_log('Unknown method: '.get_class($this).'->'.$method);
+        $this->log('Unknown method: '.get_class($this).'->'.$method);
         return null;
     }
 
@@ -168,6 +170,12 @@ class SimpleClass
         }
 
         $result = null;
+
+        if(!property_exists($this, $name)) {
+            $this->log("Ignoring set for invalid property $name.");
+            return $result;
+        }
+
         $val = $this->verifyParameterValue($name, $value);
         if(!is_null($val))
         {
@@ -188,8 +196,8 @@ class SimpleClass
     protected function push($name, $value)
     {
         $result = null;
-        if (!isset($this->{$name}) && isset($this->{$name.'s'})) {
-            //$this->info("Converting non-existant $name to {$name}s");
+        if (!property_exists($this, $name) && property_exists($this, $name.'s')) {
+            //$this->info("Converting non-existant $name to plural {$name}s");
             $name = $name.'s';
         }
 
@@ -210,7 +218,7 @@ class SimpleClass
                 }
                 else
                 {
-                    $this->log("Ignoring invalid value pushed to property '$name': ".print_r($value, 1));
+                    $this->log("Ignoring invalid value pushed to property '$name'.");
                 }
             }
         }
@@ -235,16 +243,17 @@ class SimpleClass
                 // check if we should iterate through an array of values
                 if($this->isPushable($name) && is_array($value) && array_key_exists(0, $value))
                 {
+                    $filtered = array();
                     foreach ($value as $key=>$val)
                     {
                         $val = call_user_func($this->setters[$name], $val, $name);
                         if (is_null($val)) {
-                            unset($value[$key]);
                             $this->log("Ignoring invalid value in {$name}[{$key}]: ".print_r($val, 1));
                         } else {
-                            $value[$key] = $val;
+                            $filtered[] = $val;
                         }
                     }
+                    $value = $filtered;
                 } else {
                     $value = call_user_func($this->setters[$name], $value, $name);
                 }
@@ -273,7 +282,7 @@ class SimpleClass
     **/
     protected function isGettable($name)
     {
-        return $this->isSettable($name) || in_array($name, $this->gettable);
+        return $this->isSettable($name) || in_array($name, $this->gettable, true);
     }
 
     /**
@@ -283,7 +292,7 @@ class SimpleClass
     **/
     protected function isSettable($name)
     {
-        return in_array($name, $this->settable) || $this->isPushable($name);
+        return in_array($name, $this->settable, true) || $this->isPushable($name);
     }
 
     /**
@@ -292,7 +301,7 @@ class SimpleClass
     protected function addSetter($name, $func)
     {
         $result = $this->resolveCallable($func);
-        if(is_string($name) && !empty($name) && !empty($result)) {
+        if(is_string($name) && property_exists($this, $name) && !empty($result)) {
             $this->setters[$name] = $result;
             return true;
         } else {
@@ -342,7 +351,11 @@ class SimpleClass
     **/
     protected function setStringOrArray($value)
     {
-        return $this->setString($value) || $this->setArray($value);
+        if(!is_null($this->setString($value)) || !is_null($this->setArray($value))) {
+            return $value;
+        } else {
+            return null;
+        }
     }
 
     /**
@@ -404,15 +417,19 @@ class SimpleClass
      * Determine if a value is callable by call_user_func.
      *
      * @param mixed Procedural function name, or method name of current object, or array($objectinstance, $methodname), or singleton.
+     * @param bool Resolve to current object if a string that is not a defined function. The result will always be callable due to __call.
      * @return mixed Function or null on error.
     **/
-    protected function resolveCallable($call)
+    protected function resolveCallable($call, $resolveToThis = true)
     {
+        $result = null;
         if(is_string($call))
         {
-            // if not a procedural function
-            // then assign vars to check for a method in the current object
-            if(!is_callable($call)){
+            // check for a procedural function first
+            if(is_callable($call)) {
+                $result = $call;
+            // then (optionally) reassign to check for a method in the current object
+            } else if($resolveToThis){
                 $call = array($this, $call);
             }
         }
@@ -426,15 +443,11 @@ class SimpleClass
                 // TODO: above clauses really needed?
                 is_callable($call)
             ){
-                // call is valid, do nothing
-            }
-            else
-            {
-                $call = null;
+                $result = $call;
             }
         }
 
-        return $call;
+        return $result;
     }
 
     /**
