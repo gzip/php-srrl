@@ -15,7 +15,7 @@ class SimpleModuleTest extends PHPUnit\Framework\TestCase
      */
     protected function setUp() : void
     {
-        $this->object = new SimpleModule;
+        $this->object = new SimpleModuleProxy;
     }
 
     /**
@@ -26,70 +26,66 @@ class SimpleModuleTest extends PHPUnit\Framework\TestCase
     {
     }
 
-    /**
-     * @todo Implement testSetupParams().
-     */
     public function testSetupParams()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        // setupParams is called automatically in constructor so don't call it again
+        $gettables = $this->object->getGettable();
+        $this->assertEquals(array('data', 'setKeys', 'final'), $gettables);
+        $settables = array_slice($this->object->getSettable(), 2);
+        $this->assertEquals(array('page', 'name', 'cacheKey', 'cacheDir'), $settables);
     }
 
-    /**
-     * @todo Implement testSetup().
-     */
     public function testSetup()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $this->assertTrue($this->object->setup());
     }
 
-    /**
-     * @todo Implement testGetCacheObject().
-     */
     public function testGetCacheObject()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        // null if cacheDir and cacheKey are not set
+        $this->assertNull($this->object->getCacheObject());
+
+        $this->object->setCacheDir(__DIR__);
+        $this->object->setCacheKey('mod');
+        $cache = $this->object->getCacheObject();
+        $this->assertEquals('SimpleCache', get_class($cache));
     }
 
-    /**
-     * @todo Implement testGetData().
-     */
     public function testGetData()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $this->assertTrue($this->object->getData());
     }
 
-    /**
-     * @todo Implement testRender().
-     */
     public function testRender()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $this->assertEquals('foo', $this->object->render('foo'));
     }
 
-    /**
-     * @todo Implement testGetAssets().
-     */
     public function testGetAssets()
     {
-        // Remove the following lines when you implement this test.
-        $this->markTestIncomplete(
-          'This test has not been implemented yet.'
-        );
+        $this->assertEquals(array(), $this->object->getAssets());
+    }
+
+    public function testSetPageTitle()
+    {
+        $this->object->setPage(new SimplePageMock);
+        $this->assertEquals('SimplePageMock', get_class($this->object->getPage()));
+        $this->assertEquals('title:foo', $this->object->setPageTitle('foo'));
     }
 }
-?>
+
+class SimpleModuleProxy extends SimpleModule
+{
+    public function setPageTitle($title)
+    {
+        return parent::setPageTitle($title);
+    }
+}
+
+class SimplePageMock
+{
+    public function setKey($key, $value)
+    {
+        return "$key:$value";
+    }
+}
