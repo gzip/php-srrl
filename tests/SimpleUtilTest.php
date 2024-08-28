@@ -52,9 +52,11 @@ class SimpleUtilTest extends PHPUnit\Framework\TestCase
 
     public function testGetResourceId()
     {
-        $res = curl_init();
+        $res = fopen(__FILE__, 'r');
         $this->assertIsInt(SimpleUtil::getResourceId($res));
+        $this->assertNotEquals(0, SimpleUtil::getResourceId($res));
         $this->assertEquals(0, SimpleUtil::getResourceId(false));
+        fclose($res);
     }
 
     public function testArrayVal()
@@ -66,7 +68,7 @@ class SimpleUtilTest extends PHPUnit\Framework\TestCase
 
     public function testLog()
     {
-        SimpleUtil::log(1);
+        $this->assertNull(SimpleUtil::log(1));
         SimpleUtil::log(array());
         SimpleUtil::log(false);
     }
