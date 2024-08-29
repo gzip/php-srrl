@@ -176,13 +176,18 @@ class SimpleClass
             return $result;
         }
 
-        $val = $this->verifyParameterValue($name, $value);
-        if(!is_null($val))
+        if($this->isSettable($name))
         {
-            $this->{$name} = $val;
-            $result = $val;
+            $val = $this->verifyParameterValue($name, $value);
+            if(!is_null($val))
+            {
+                $this->{$name} = $val;
+                $result = $val;
+            } else {
+                $this->log("Ignoring invalid value for $name: ".(is_object($value) ? get_class($value) : print_r($value, 1)));
+            }
         } else {
-            $this->log("Ignoring invalid value for $name: ".(is_object($value) ? get_class($value) : print_r($value, 1)));
+            $this->log("Property $name is not settable.");
         }
 
         return $result;
@@ -237,29 +242,24 @@ class SimpleClass
     **/
     protected function verifyParameterValue($name, $value)
     {
-        if($this->isSettable($name))
-        {
-            if(isset($this->setters[$name])){
-                // check if we should iterate through an array of values
-                if($this->isPushable($name) && is_array($value) && array_key_exists(0, $value))
+        if(isset($this->setters[$name])){
+            // check if we should iterate through an array of values
+            if($this->isPushable($name) && is_array($value) && array_key_exists(0, $value))
+            {
+                $filtered = array();
+                foreach ($value as $key=>$val)
                 {
-                    $filtered = array();
-                    foreach ($value as $key=>$val)
-                    {
-                        $val = call_user_func($this->setters[$name], $val, $name);
-                        if (is_null($val)) {
-                            $this->log("Ignoring invalid value in {$name}[{$key}]: ".print_r($val, 1));
-                        } else {
-                            $filtered[] = $val;
-                        }
+                    $val = call_user_func($this->setters[$name], $val, $name);
+                    if (is_null($val)) {
+                        $this->log("Ignoring invalid value in {$name}[{$key}]: ".print_r($val, 1));
+                    } else {
+                        $filtered[] = $val;
                     }
-                    $value = $filtered;
-                } else {
-                    $value = call_user_func($this->setters[$name], $value, $name);
                 }
+                $value = $filtered;
+            } else {
+                $value = call_user_func($this->setters[$name], $value, $name);
             }
-        } else {
-            $value = null;
         }
 
         return $value;
