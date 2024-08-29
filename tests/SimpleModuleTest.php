@@ -15,7 +15,7 @@ class SimpleModuleTest extends PHPUnit\Framework\TestCase
      */
     protected function setUp() : void
     {
-        $this->object = new SimpleModuleProxy;
+        $this->object = new SimpleModuleBasicProxy;
     }
 
     /**
@@ -74,7 +74,7 @@ class SimpleModuleTest extends PHPUnit\Framework\TestCase
     }
 }
 
-class SimpleModuleProxy extends SimpleModule
+class SimpleModuleBasicProxy extends SimpleModule
 {
     public function setPageTitle($title)
     {
