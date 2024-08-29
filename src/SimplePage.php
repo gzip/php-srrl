@@ -124,8 +124,8 @@ class SimplePage extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('meta', 'template', 'keys'));
-        $this->addPushable(array('subtemplates', 'moduleRoot', 'modules'));
+        $this->addSettable(array('meta', 'template', 'keys', 'subtemplates', 'modules'));
+        $this->addPushable(array('moduleRoot'));
         $this->addSetter('moduleRoot', 'setDirectoryPath');
     }
 
@@ -172,7 +172,7 @@ class SimplePage extends SimpleClass
     **/
     public function setup()
     {
-        if(!$this->moduleRoot){
+        if(count($this->moduleRoot) === 0){
             $this->setModuleRoot($_SERVER['DOCUMENT_ROOT'].'/modules');
         }
 
@@ -214,6 +214,9 @@ class SimplePage extends SimpleClass
         $result = null;
         $config = SimpleUtil::getValue($this->modules, $name, array());
         $className = SimpleUtil::getValue($config, 'class', $name);
+        if(class_exists($className)) {
+            return true;
+        }
 
         $fileFound = false;
         foreach ($this->moduleRoot as $root)
@@ -249,6 +252,7 @@ class SimplePage extends SimpleClass
         $className = SimpleUtil::getValue($config, 'class', $name);
         $params = SimpleUtil::getValue($config, 'params', array());
 
+        // at this point the class has already been verified by verifyModule
         $mod = new $className(array_merge($params, array('page'=>$this, 'name'=>$name)));
 
         if(is_a($mod, 'SimpleModule'))
@@ -388,16 +392,16 @@ class SimplePage extends SimpleClass
         $requestObjs = array();
         foreach($this->results as $id=>$result)
         {
-            if(true !== SimpleUtil::getValue($result, 'complete'))
+            if(true !== SimpleUtil::getValue($result, 'fetched'))
             {
                 // $this->log($id.': '.$result['name'].', '.get_class($result['module']).', '.
                 // $result['module']->getUrl().', '.$result['request']->getHandle());
                 $requestObjs[$id] = $result['request'];
-                $this->results[$id]['complete'] = true;
+                $this->results[$id]['fetched'] = true;
             }
         }
 
-        $request = new SimpleRequest();
+        $request = $this->newRequest();
         $handles = $request->multiQuery($requestObjs);
         //$this->log($handles);
 
@@ -420,6 +424,14 @@ class SimplePage extends SimpleClass
             }
         }
         //$this->log($this->nameIndex);
+    }
+
+    /**
+     * Get a SimpleRequest instance, primarily for mocking.
+    **/
+    protected function newRequest()
+    {
+        return new SimpleRequest();
     }
 
     /**
@@ -510,7 +522,7 @@ class SimplePage extends SimpleClass
         {
             case $url = SimpleUtil::getValue($asset, 'url'):
                 if($type == 'css'){
-                    $attrs = $this->markup->buildAttrs($attrs, array('rel'=>'stylesheet', 'type'=>'text/css', 'href'=>$url));
+                    $attrs = $this->markup->buildAttrs(array('rel'=>'stylesheet', 'type'=>'text/css', 'href'=>$url), $attrs);
                     $result = $this->markup->link(SimpleMarkup::NO_VALUE, null, $attrs);
                 } else {
                     $attrs = $this->markup->buildAttrs($attrs, array('src'=>$url));
@@ -525,8 +537,7 @@ class SimplePage extends SimpleClass
                 $result = $this->markup->$tag($content, null, $attrs);
             break;
             default:
-                $this->log('Misconfigured asset:');
-                $this->log($asset);
+                $this->log('Misconfigured asset: '.print_r($asset, 1));
             break;
         }
         return $result;
@@ -542,8 +553,11 @@ class SimplePage extends SimpleClass
         $template = realpath($template);
         if(is_file($template)){
             $template = file_get_contents($template);
+            return $template;
+        } else {
+            $this->log('Unable to load template: '.$template);
+            return null;
         }
-        return $template;
     }
 
     /**
