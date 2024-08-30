@@ -300,12 +300,18 @@ class SimpleClass
     **/
     protected function addSetter($name, $func)
     {
-        $result = $this->resolveCallable($func);
-        if(is_string($name) && property_exists($this, $name) && !empty($result)) {
-            $this->setters[$name] = $result;
-            return true;
+        if (is_string($name) && property_exists($this, $name))
+        {
+            $result = $this->resolveCallable($func);
+            if(!empty($result)) {
+                $this->setters[$name] = $result;
+                return true;
+            } else {
+                $this->log("Ignoring unresolvable setter function for $name.");
+                return null;
+            }
         } else {
-            $this->log("Ignoring unresolvable setter function for $name.");
+            $this->log("Ignoring setter function for non-existant property '$name'.");
             return null;
         }
     }
