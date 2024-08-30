@@ -599,7 +599,10 @@ class SimpleRequest extends SimpleClass
             }
 
             // tack on info from logger
-            $info['curl_options'] = $this->logger['curl_options'];
+            $opts = SimpleUtil::getValue($this->logger, 'curl_options', null);
+            if ($opts) {
+                $info['curl_options'] = $opts;
+            }
 
             // log it
             $this->log(SimpleString::buildParams($info, "\n  ", "\n  ", ': ', null));
