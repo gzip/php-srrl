@@ -164,7 +164,7 @@ class SimpleClass
     **/
     public function set($name, $value)
     {
-        if($this->isPushable($name) && !is_array($value))
+        if($this->isPushable($name) && !in_array($name, $this->settable))
         {
             return $this->push($name, $value);
         }
