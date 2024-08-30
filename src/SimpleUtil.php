@@ -187,7 +187,11 @@ class SimpleUtil
             $dump = is_scalar($log) ? false : true;
         }
 
-        if(is_bool($log))
+        if(is_null($log))
+        {
+            $log = 'NULL';
+        }
+        else if(is_bool($log))
         {
             $log = $log ? 'bool(TRUE)' : 'bool(FALSE)';
         }
