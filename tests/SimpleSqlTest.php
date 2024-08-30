@@ -26,19 +26,19 @@ class SimpleSqlTest extends PHPUnit\Framework\TestCase
     public function testQuery()
     {
         // coverage only
-        $this->sql->query('SQL');
+        $this->assertEquals('SQL', $this->sql->query('SQL'));
     }
 
     public function testExec()
     {
         // coverage only
-        $this->sql->exec('FAIL');
+        $this->assertFalse($this->sql->exec('FAIL'));
     }
 
     public function testPrepare()
     {
         // coverage only
-        $this->sql->prepare('SQL');
+        $this->assertEquals('SQL', $this->sql->prepare('SQL'));
     }
 
     public function testSelect()
@@ -176,7 +176,7 @@ class SimpleSqlTest extends PHPUnit\Framework\TestCase
 
     public function testClose()
     {
-        $this->sql->close();
+        $this->assertNull($this->sql->close());
     }
 }
 
