@@ -77,7 +77,12 @@ class SimpleClassTest extends PHPUnit\Framework\TestCase
         $this->proxy->setTestArray('bat');
         $this->assertEquals(array('foo', 'bar', 'bat'), $this->proxy->getTestArray());
 
-        // test set of pushable
+        // test set of pushable but not settable
+        $this->proxy->setTestArray(array('baz'));
+        $this->assertEquals(array('foo', 'bar', 'bat', 'baz'), $this->proxy->getTestArray());
+
+        // test set of pushable/settable
+        $this->proxy->pushSettable('testArray');
         $this->proxy->setTestArray(array('baz'));
         $this->assertEquals(array('baz'), $this->proxy->getTestArray());
 
@@ -133,7 +138,7 @@ class SimpleClassTest extends PHPUnit\Framework\TestCase
         $this->assertEquals('test', $this->proxy->getTestStr());
 
         $this->assertNull($this->proxy->addSetter('foo', function(){}));
-        $this->readLog("Ignoring unresolvable setter function for foo.");
+        $this->readLog("Ignoring setter function for non-existant property 'foo'.");
     }
 
     public function testSetParams()
