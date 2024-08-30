@@ -99,6 +99,44 @@ class SimplePageTest extends PHPUnit\Framework\TestCase
         $this->assertTrue(array_key_exists('moduleRoot', $setters));
     }
 
+    public function testExecuteModules()
+    {
+        $root = dirname(__FILE__);
+        $this->object->moduleRoot[0] = $root;
+
+        $this->object->modules = array(
+            'mock'=>array('class'=>'SimpleModuleProxy'),
+            'cached'=>array('class'=>'SimpleModuleCachedProxy'),
+            'failed'=>array('class'=>'SimpleModuleFailedDataProxy'),
+            'not_a_mod'=>array('class'=>'SimpleCacheProxy'),
+            'not_a_class'=>array('class'=>'SimplyFooBarred')
+        );
+
+        $this->object->results = array(
+            array('request'=>$this->object->newRequest(), 'module'=> new SimpleModuleProxy, 'name'=>'mock'),
+            array('request'=>$this->object->newRequest(), 'module'=> new SimpleModuleCachedProxy, 'name'=>'cached')
+        );
+
+        $result = $this->object->executeModules();
+        $this->assertEquals(5, count($result));
+        $this->assertEquals(array(
+            'Class SimpleModuleFailedDataProxy failed to return data.',
+            'Class SimpleCacheProxy is not derived from SimpleModule, skipping.',
+            'Module file SimplyFooBarred.php not found in path(s) '.$root
+        ), $this->object->logs);
+
+        $this->assertEquals(array (
+            'mock' => 'rendered',
+            'cached' => 'rendered',
+            'failed' => null,
+            'not_a_mod' => null,
+            'not_a_class' => null
+        ), $result);
+
+        $this->assertEquals('data', $this->object->handleModule('mock'));
+        $this->assertEquals('cached', $this->object->handleModule('cached'));
+    }
+
     public function testVerifyModule()
     {
         // already defined in this test, should return early
@@ -139,7 +177,7 @@ class SimplePageTest extends PHPUnit\Framework\TestCase
 
         $this->assertEquals('data', $this->object->handleModule('mock'));
 
-        $this->assertEquals('rendered', $this->object->handleModule('cached'));
+        $this->assertEquals('cached', $this->object->handleModule('cached'));
     }
 
     public function testFetchAll()
@@ -460,10 +498,18 @@ class SimpleModuleCachedProxy extends SimpleModuleProxy
     {
         $this->cacheObject = new SimpleCacheProxy('foo');
         $this->cacheObject->put(array(
-            'content'=>'rendered',
+            'content'=>'cached',
             'assets'=>$this->assets,
             'keys'=>$this->setKeys
         ));
+    }
+}
+
+class SimpleModuleRequestProxy extends SimpleModuleProxy
+{
+    public function setup()
+    {
+        $this->data = new SimpleRequestProxy();
     }
 }
 
