@@ -67,8 +67,7 @@ class SimpleRequest extends SimpleClass
      **/
     public function setupParams()
     {
-        $this->addSettable(array('host', 'protocol', 'port', 'url'));
-        $this->addSetter('url', 'parseUrl');
+        $this->addSettable(array('host', 'protocol', 'port'));
         $this->addPushable(array('debugDetails'));
         $this->addGettable(array('handle', 'parse'));
     }
